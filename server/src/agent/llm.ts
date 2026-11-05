@@ -74,15 +74,23 @@ export class ClaudeAgent implements RecoveryAgent {
       messages.push({ role: "user", content: `[hint] objection type: ${classifyIntent(event.text)}` });
     }
 
-    // Sonnet 5.5 rejects non-default temperature and forced tool_choice, so neither is set.
+    // Current Claude models reject non-default temperature, so none is set; tool_choice stays auto.
+    // Thinking is on by default and counts toward maxOutputTokens, so the cap leaves room for it.
     const result = await generateText({
       model: this.model,
       system: systemPrompt(ctx),
       messages,
       tools: this.buildTools(ctx),
       stopWhen: stepCountIs(6),
-      maxOutputTokens: 1024,
+      maxOutputTokens: 4096,
+      providerOptions: { anthropic: { effort: this.config.agent.effort } },
     });
-    return result.text.trim();
+    const text = result.text.trim();
+    // No words and no tool calls (a refusal, or the cap hit while thinking): let the caller fall back.
+    // When tools ran, their links are still sent, and the fallback must not repeat them.
+    if (!text && !result.steps.some((s) => s.toolCalls.length > 0)) {
+      throw new Error(`empty reply from ${this.config.agent.model} (finishReason=${result.finishReason})`);
+    }
+    return text;
   }
 }

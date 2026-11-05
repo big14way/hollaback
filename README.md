@@ -78,7 +78,7 @@ Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_WHATSAPP_FROM` (the sa
 
 ### Claude agent
 
-Set `ANTHROPIC_API_KEY`. The agent runs `claude-sonnet-5-5` through the Vercel AI SDK. Without a key the scripted agent runs the same policy with the same tools, so every flow works offline.
+Set `ANTHROPIC_API_KEY`. The agent runs `claude-haiku-5-5` (Claude Haiku 5.5) through the Vercel AI SDK, at effort `medium` (`AGENT_EFFORT`). Without a key the scripted agent runs the same policy with the same tools, so every flow works offline.
 
 ### Supabase
 
@@ -108,7 +108,7 @@ The free web service sleeps after 15 idle minutes and the first request after th
 
 ## AI tools used
 
-- **Claude (`claude-sonnet-5-5`) via the Vercel AI SDK** (`ai` v5, `@ai-sdk/anthropic`). The recovery agent: it reads the conversation, picks tools, and writes short WhatsApp replies. `server/src/agent/llm.ts`.
+- **Claude Haiku 5.5 (`claude-haiku-5-5`) via the Vercel AI SDK** (`ai` v5, `@ai-sdk/anthropic`). The recovery agent: it reads the conversation, picks tools, and writes short WhatsApp replies. `server/src/agent/llm.ts`.
 - **PayPal Agent Toolkit** (`@paypal/agent-toolkit/ai-sdk`). The agent reads orders and invoices through PayPal's own toolkit. The toolkit builds AI SDK v4-style tools (`parameters`), so Hollaback re-wraps each one with AI SDK v5's `dynamicTool`.
 - **Agent tools** (`server/src/agent/tools.ts`), each logged to the transcript with input, output and timing:
 

@@ -21,11 +21,14 @@ export interface Config {
   followUpMs: number;
   discountCapPct: number;
   merchant: { id: string; name: string; currency: string; persona: string };
-  agent: { anthropicApiKey: string; model: string; mode: "auto" | "claude" | "scripted" };
+  agent: { anthropicApiKey: string; model: string; effort: AgentEffort; mode: "auto" | "claude" | "scripted" };
   twilio: { accountSid: string; authToken: string; whatsappFrom: string; validateSignature: boolean };
   supabase: { url: string; serviceRoleKey: string };
   snippetPath: string | null;
 }
+
+export type AgentEffort = "low" | "medium" | "high" | "xhigh" | "max";
+const EFFORTS: AgentEffort[] = ["low", "medium", "high", "xhigh", "max"];
 
 function num(v: string | undefined, fallback: number): number {
   const n = v === undefined || v === "" ? NaN : Number(v);
@@ -72,7 +75,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     },
     agent: {
       anthropicApiKey: env.ANTHROPIC_API_KEY || "",
-      model: env.AGENT_MODEL || "claude-sonnet-5-5",
+      model: env.AGENT_MODEL || "claude-haiku-5-5",
+      effort: EFFORTS.includes(env.AGENT_EFFORT as AgentEffort) ? (env.AGENT_EFFORT as AgentEffort) : "medium",
       mode: env.AGENT_MODE === "scripted" || env.AGENT_MODE === "claude" ? env.AGENT_MODE : "auto",
     },
     twilio: {

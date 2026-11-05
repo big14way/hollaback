@@ -61,6 +61,8 @@ describe("Claude agent (Vercel AI SDK) wiring", () => {
 
     const first = model.doGenerateCalls[0]!;
     expect(first.temperature).toBeUndefined();
+    expect(first.maxOutputTokens).toBe(4096);
+    expect(first.providerOptions?.anthropic?.effort).toBe("medium");
     expect(first.toolChoice?.type ?? "auto").toBe("auto");
     expect(first.tools?.map((tl) => tl.name).sort()).toEqual(
       ["apply_discount", "create_and_send_invoice", "end_conversation", "get_order", "offer_pay_later", "send_checkout_link"].sort(),
@@ -111,5 +113,16 @@ describe("Claude agent (Vercel AI SDK) wiring", () => {
     await post("/events", { type: "abandoned", sessionId: "llm-3", orderId: order.orderId, reason: "cancel" });
     await waitFor(() => channel.outbox.length === 1);
     expect(channel.outbox[0]!.body).toMatch(/^Hi Ada, this is Kicks Lagos/);
+  });
+
+  it("falls back to the scripted agent when the model returns no text and no tool calls", async () => {
+    const { t } = await setup([{ content: [], finishReason: "content-filter", usage, warnings: [] }]);
+    const order = await startCheckout(t as never, { sessionId: "llm-4" });
+    await t.post("/events", { type: "abandoned", sessionId: "llm-4", orderId: order.orderId, reason: "cancel" });
+    await waitFor(() => t.outbox.length === 1);
+    expect(t.outbox[0]!.body).toMatch(/^Hi Ada, this is Kicks Lagos/);
+    const view = await t.get(`/api/carts/${order.cartId}`);
+    const notes = (view.conversations[0].messages as Message[]).filter((m) => m.role === "system").map((m) => m.body);
+    expect(notes.some((b) => b.includes("empty reply from claude-haiku-5-5 (finishReason=content-filter)"))).toBe(true);
   });
 });
