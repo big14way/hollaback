@@ -151,7 +151,9 @@ export function CartsDashboard() {
     });
   }, []);
 
-  const rows: GridRow[] = useMemo(() => (grouped ? groupByOutcome(carts, collapsed) : toDataRows(carts)), [carts, grouped, collapsed]);
+  // Shoppers still browsing or mid-checkout are not abandoned yet; keep them out of the table.
+  const shown = useMemo(() => carts.filter((c) => c.abandonedAt || !["active", "pending"].includes(c.status)), [carts]);
+  const rows: GridRow[] = useMemo(() => (grouped ? groupByOutcome(shown, collapsed) : toDataRows(shown)), [shown, grouped, collapsed]);
 
   const columns = useMemo<ColDef<GridRow>[]>(
     () => [
