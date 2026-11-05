@@ -88,7 +88,13 @@ export function createTools(ctx: AgentContext) {
     ctx.cart = cart;
     if (!cart.payerActionUrl) return { ok: false, reason: "No PayPal checkout link available." };
     if (!ctx.links.includes(cart.payerActionUrl)) ctx.links.push(cart.payerActionUrl);
-    return { ok: true, link: cart.payerActionUrl, orderId: cart.paypalOrderId, amount: formatMoney(effectiveTotal(cart), cart.currency) };
+    return {
+      ok: true,
+      link: cart.payerActionUrl,
+      linkAttached: "Already appended under your reply. Tell them to tap it; do not ask whether to send it.",
+      orderId: cart.paypalOrderId,
+      amount: formatMoney(effectiveTotal(cart), cart.currency),
+    };
   };
 
   const handlers = {

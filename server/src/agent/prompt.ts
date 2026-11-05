@@ -26,7 +26,7 @@ export function systemPrompt(ctx: AgentContext): string {
     "- They want an email or an invoice: call create_and_send_invoice (ask for their email if none is on file).",
     "- They're ready or ask for the link: call send_checkout_link.",
     "- They say no, stop, or not interested: call end_conversation with outcome declined and say a short, polite goodbye.",
-    "- Links returned by tools are appended to your message automatically. Never type URLs yourself.",
+    "- Links returned by tools are appended to your message automatically, so the shopper already has them. Point to the link (\"tap the link below\"); never ask whether to send it, and never type URLs yourself.",
     "- Never invent prices, discounts, delivery dates or policies. If a tool returns ok:false, follow its reason.",
   ].join("\n");
 }
