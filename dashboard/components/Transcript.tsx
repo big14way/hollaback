@@ -4,7 +4,16 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchCart, replyAsShopper, API_URL } from "@/lib/api";
 import { useLiveUpdates } from "@/lib/live";
-import { itemsSummary, maskPhone, money, outcomeKey } from "@/lib/format";
+import { itemsSummary, maskPhone, money, OUTCOME_LABEL, outcomeKey, STATUS_LABEL } from "@/lib/format";
+
+const LEFT_VIA: Record<string, string> = {
+  cancel: "Closed the PayPal window",
+  idle: "Went idle",
+  hidden: "Left the tab",
+  exit_intent: "Exit intent",
+  pagehide: "Closed the page",
+  timeout: "Never paid",
+};
 import type { CartDetail, Message, ToolCallLog } from "@/lib/types";
 import { OutcomeBadge, StatusBadge } from "./Badge";
 
@@ -66,7 +75,7 @@ export function Transcript({ id }: { id: string }) {
       ...data.events.map((e) => ({
         kind: "event" as const,
         at: e.createdAt,
-        title: e.type.replace(/_/g, " "),
+        title: e.type.charAt(0).toUpperCase() + e.type.slice(1).replace(/_/g, " "),
         detail:
           [e.detail.reason, e.detail.orderId, e.detail.orderStatus ? `order still ${String(e.detail.orderStatus)}` : null, e.detail.source]
             .filter(Boolean)
@@ -88,7 +97,7 @@ export function Transcript({ id }: { id: string }) {
     return (
       <div className="transcript-page">
         <Link href="/" className="back">
-          ← All carts
+          ← Recoveries
         </Link>
         <p className="muted">{error ?? "Loading…"}</p>
       </div>
@@ -104,7 +113,7 @@ export function Transcript({ id }: { id: string }) {
   return (
     <div className="transcript-page">
       <Link href="/" className="back">
-        ← All carts
+        ← Recoveries
       </Link>
       <header className="cart-head">
         <div>
@@ -114,7 +123,7 @@ export function Transcript({ id }: { id: string }) {
           </p>
         </div>
         <div className="head-badges">
-          <StatusBadge status={cart.status} />
+          {STATUS_LABEL[cart.status] !== OUTCOME_LABEL[outcome] && <StatusBadge status={cart.status} />}
           <OutcomeBadge outcome={outcome} />
           <span className="amount">{money(cart.effectiveTotal, cart.currency)}</span>
         </div>
@@ -125,8 +134,8 @@ export function Transcript({ id }: { id: string }) {
           <dd>{cart.paypalOrderId ?? "none"} {cart.orderStatus ? `(${cart.orderStatus})` : ""}</dd>
         </div>
         <div>
-          <dt>Abandon signal</dt>
-          <dd>{cart.abandonReason ?? "none"}</dd>
+          <dt>How they left</dt>
+          <dd>{cart.abandonReason ? (LEFT_VIA[cart.abandonReason] ?? cart.abandonReason) : "none"}</dd>
         </div>
         <div>
           <dt>Recovered</dt>

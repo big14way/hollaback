@@ -1,4 +1,4 @@
-import type { CartDetail, CartRow, Stats } from "./types";
+import type { CartDetail, CartRow, PublicConfig, Stats } from "./types";
 
 export const API_URL = (process.env.NEXT_PUBLIC_HOLLABACK_API_URL || "http://localhost:4000").replace(/\/$/, "");
 
@@ -11,6 +11,7 @@ async function get<T>(path: string): Promise<T> {
 export const fetchCarts = () => get<{ carts: CartRow[] }>("/api/carts").then((d) => d.carts);
 export const fetchStats = () => get<Stats>("/api/stats");
 export const fetchCart = (id: string) => get<CartDetail>(`/api/carts/${encodeURIComponent(id)}`);
+export const fetchConfig = () => get<PublicConfig>("/config");
 
 export async function replyAsShopper(cartId: string, body: string): Promise<void> {
   const res = await fetch(`${API_URL}/api/carts/${encodeURIComponent(cartId)}/reply`, {

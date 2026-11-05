@@ -80,3 +80,14 @@ export interface Stats {
   recoveryRate: number;
   currency: string;
 }
+
+/** GET /config: public, non-secret server settings. */
+export interface PublicConfig {
+  mock: boolean;
+  environment: "sandbox" | "live";
+  merchant: { id: string; name: string; currency: string };
+  channel: string;
+  agent: string;
+  graceMs: number;
+  policy?: { discountCapPct: number; followUpMs: number; maxWaitMs: number; webhookVerified: boolean; toolkit: string[] };
+}
