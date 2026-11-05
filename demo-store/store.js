@@ -88,18 +88,39 @@
     show("Something went wrong with PayPal: " + ((err && err.message) || err), "error");
   }
 
+  function cartTotal() {
+    return CART.items
+      .reduce(function (sum, item) {
+        return sum + item.unitPrice * item.quantity;
+      }, 0)
+      .toFixed(2);
+  }
+
+  // Sandbox only (this page loads the sandbox SDK). PayPal decides Pay Later eligibility from the
+  // buyer's country, so a tester outside the US never sees US Pay Later. testBuyerCountry pins the
+  // buyer country in sandbox. ?buyerCountry=XX picks another country; ?buyerCountry=auto uses the real one.
+  function testBuyerCountry() {
+    var param = new URLSearchParams(window.location.search).get("buyerCountry");
+    var country = (param || "US").toUpperCase();
+    return /^[A-Z]{2}$/.test(country) ? country : null;
+  }
+
   // ---------- Real PayPal JS SDK v6 ----------
   function initPayPal(cfg) {
     return sdkReady
       .then(function () {
-        return window.paypal.createInstance({
+        var options = {
           clientId: cfg.paypalClientId,
           components: ["paypal-payments", "paypal-messages"],
           pageType: "checkout",
-        });
+        };
+        var country = testBuyerCountry();
+        if (country) options.testBuyerCountry = country;
+        return window.paypal.createInstance(options);
       })
       .then(function (sdk) {
-        return sdk.findEligibleMethods({ currencyCode: "USD" }).then(function (methods) {
+        // The amount matters: Pay Later products have minimum and maximum order totals.
+        return sdk.findEligibleMethods({ currencyCode: "USD", amount: cartTotal() }).then(function (methods) {
           var handlers = { onApprove: onApprove, onCancel: onCancel, onError: onError };
 
           if (methods.isEligible("paypal")) {
