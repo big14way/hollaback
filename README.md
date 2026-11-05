@@ -97,6 +97,8 @@ Use your own sandbox personal account to pay locally, or the hosted demo's sandb
 
 Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_WHATSAPP_FROM` (the sandbox number, `whatsapp:+14155238886`). The shopper's phone must join the Twilio WhatsApp sandbox once by sending its join code. In the Twilio console set "When a message comes in" to `https://<server>/whatsapp/inbound` (POST). Inbound requests are checked against `X-Twilio-Signature`. Without Twilio, messages print in the server console and replies come from the dashboard.
 
+On the Twilio sandbox, `STOP` is Twilio's own keyword: it removes your phone from the sandbox and never reaches Hollaback (the next message fails with error 63015 until you send the join code again). To see the decline path there, reply something like `no thanks, not interested`. With a production WhatsApp sender, `STOP` reaches Hollaback and ends the conversation for good.
+
 ### Claude agent
 
 Set `ANTHROPIC_API_KEY`. The agent runs `claude-haiku-5-5` (Claude Haiku 5.5) through the Vercel AI SDK, at effort `medium` (`AGENT_EFFORT`). Without a key the scripted agent runs the same policy with the same tools, so every flow works offline.
