@@ -32,6 +32,15 @@ Most shoppers who start a checkout never finish it. Hollaback watches a merchant
 
 The server runs on Render's free tier, so the first request after it has been idle can take about a minute. To drive a full recovery against the hosted server from a clone: `HOLLABACK_API_URL=https://hollaback-server.onrender.com pnpm demo:mock`, then watch the row flip on the dashboard. That script only works while the server runs in mock mode (`/health` shows `"mockPaypal": true`), because it approves the order through the simulated PayPal.
 
+To pay as the shopper on the hosted demo (the PayPal popup, a link the agent sends on WhatsApp, or an invoice), log in with this PayPal **sandbox** buyer. It is a US test account that only holds sandbox money:
+
+| Sandbox buyer | |
+| --- | --- |
+| Email | `sb-0nvk853708082@personal.example.com` |
+| Password | `lyl$I7Pi` |
+
+Skip *Pay with Debit or Credit Card* on the PayPal page; that is guest checkout. Log in with the account above to see PayPal Pay Later.
+
 ## Try it in 90 seconds (no accounts needed)
 
 Requirements: Node 20+ and pnpm 10 (`corepack enable`).
@@ -82,7 +91,7 @@ Mock mode replaces PayPal with an in-process fake of the Orders v2, Invoicing v2
    PayPal decides Pay Later eligibility from the buyer's country. So that testers outside the US see the Pay Later button and the agent's Pay Later offer, the demo store passes the sandbox-only `testBuyerCountry: "US"` to `createInstance`. Add `?buyerCountry=auto` to the store URL to use your real location instead, or `?buyerCountry=GB` (any two-letter code) to try another country. Paying with Pay Later needs a US sandbox personal account.
 6. To exercise the webhook path without a purchase: `POST /v1/notifications/simulate-event` with your `webhook_id` and `event_type: CHECKOUT.ORDER.APPROVED`.
 
-The sandbox buyer login for the hosted demo will be listed here.
+Use your own sandbox personal account to pay locally, or the hosted demo's sandbox buyer listed under [Hosted demo](#hosted-demo).
 
 ### WhatsApp (Twilio sandbox)
 
