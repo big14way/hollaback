@@ -22,6 +22,16 @@ Most shoppers who start a checkout never finish it. Hollaback watches a merchant
 4. **Handles the objection with PayPal tools.** Price: offer PayPal Pay Later first, then (only then) a discount capped at 10 % that PATCHes the order. Trust: explain PayPal Purchase Protection and send the PayPal-hosted link. "Just email me": create and send a PayPal invoice. "Stop": end and mark declined.
 5. **Marks the recovery.** Verified PayPal webhooks (`CHECKOUT.ORDER.APPROVED`, `PAYMENT.CAPTURE.COMPLETED`, `INVOICING.INVOICE.PAID`) flip the cart to Recovered with the amount, and the dashboard counter ticks up.
 
+## Hosted demo
+
+| Part | URL |
+| --- | --- |
+| Demo store (checkout page with the snippet) | https://hollaback-demo-store.onrender.com |
+| Merchant dashboard | https://hollaback-dashboard.onrender.com |
+| API server (`/health`) | https://hollaback-server.onrender.com/health |
+
+The server runs on Render's free tier, so the first request after it has been idle can take about a minute. To drive a full recovery against the hosted server from a clone: `HOLLABACK_API_URL=https://hollaback-server.onrender.com pnpm demo:mock`, then watch the row flip on the dashboard. That script only works while the server runs in mock mode (`/health` shows `"mockPaypal": true`), because it approves the order through the simulated PayPal.
+
 ## Try it in 90 seconds (no accounts needed)
 
 Requirements: Node 20+ and pnpm 10 (`corepack enable`).
@@ -70,7 +80,7 @@ Mock mode replaces PayPal with an in-process fake of the Orders v2, Invoicing v2
 5. `pnpm dev`. The demo store now renders the real JS SDK v6 PayPal and Pay Later buttons and the Pay Later message. Log in with the sandbox personal account to pay, or close the popup to trigger a recovery.
 6. To exercise the webhook path without a purchase: `POST /v1/notifications/simulate-event` with your `webhook_id` and `event_type: CHECKOUT.ORDER.APPROVED`.
 
-Sandbox buyer login and the hosted demo URL will be listed here with the deployment.
+The sandbox buyer login for the hosted demo will be listed here.
 
 ### WhatsApp (Twilio sandbox)
 
