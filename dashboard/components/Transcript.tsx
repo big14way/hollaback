@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchCart, replyAsShopper, API_URL } from "@/lib/api";
+import { useLiveUpdates } from "@/lib/live";
 import { itemsSummary, maskPhone, money, outcomeKey } from "@/lib/format";
 import type { CartDetail, Message, ToolCallLog } from "@/lib/types";
 import { OutcomeBadge, StatusBadge } from "./Badge";
@@ -37,10 +38,10 @@ export function Transcript({ id }: { id: string }) {
     }
   }, [id]);
 
+  useLiveUpdates(load, { cartId: id, fallbackMs: 5_000 });
+
   useEffect(() => {
     load();
-    const t = setInterval(load, 5_000);
-    return () => clearInterval(t);
   }, [load]);
 
   const send = async (text: string) => {

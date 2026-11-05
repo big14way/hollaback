@@ -1,10 +1,54 @@
 import type { FastifyInstance } from "fastify";
 import type { AppDeps } from "../app.js";
+import type { OutgoingHttpHeaders, ServerResponse } from "node:http";
 import { effectiveTotal } from "../orders.js";
+
+const HEARTBEAT_MS = 20_000;
 
 /** Read API for the merchant dashboard. */
 export function registerApiRoutes(app: FastifyInstance, deps: AppDeps): void {
-  const { store } = deps;
+  const { store, bus } = deps;
+  const streams = new Set<ServerResponse>();
+
+  /**
+   * Server-sent events: one `change` event per store write (optionally only for one cart).
+   * The dashboard refetches on each event, so the grid flips the moment a webhook lands.
+   */
+  app.get<{ Querystring: { cartId?: string } }>("/api/stream", (req, reply) => {
+    const only = req.query.cartId || null;
+    reply.hijack();
+    const res = reply.raw;
+    // hijack() skips Fastify's reply pipeline, so carry over headers set by hooks (CORS).
+    const inherited = Object.fromEntries(Object.entries(reply.getHeaders()).filter(([, v]) => v !== undefined)) as OutgoingHttpHeaders;
+    res.writeHead(200, {
+      ...inherited,
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-transform",
+      connection: "keep-alive",
+      "x-accel-buffering": "no",
+    });
+    res.write(`retry: 3000\nevent: ready\ndata: ${JSON.stringify({ store: store.kind })}\n\n`);
+    streams.add(res);
+
+    const unsubscribe = bus.subscribe((e) => {
+      if (only && e.cartId !== only) return;
+      res.write(`event: change\ndata: ${JSON.stringify(e)}\n\n`);
+    });
+    const heartbeat = setInterval(() => res.write(": ping\n\n"), HEARTBEAT_MS);
+    heartbeat.unref();
+    const cleanup = () => {
+      clearInterval(heartbeat);
+      unsubscribe();
+      streams.delete(res);
+    };
+    req.raw.on("close", cleanup);
+    res.on("close", cleanup);
+  });
+
+  app.addHook("preClose", async () => {
+    for (const res of streams) res.end();
+    streams.clear();
+  });
 
   app.get("/api/carts", async () => {
     const [carts, convs] = await Promise.all([store.listCarts(), store.listConversations()]);

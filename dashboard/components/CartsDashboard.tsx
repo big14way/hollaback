@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { fetchCarts, fetchStats, API_URL } from "@/lib/api";
 import { itemsSummary, maskPhone, money, outcomeKey, relativeTime } from "@/lib/format";
+import { useLiveUpdates } from "@/lib/live";
 import { groupByOutcome, toDataRows, type DataRow, type GridRow, type GroupHeaderRow } from "@/lib/grouping";
 import type { CartRow, Stats } from "@/lib/types";
 import { OutcomeBadge, StatusBadge } from "./Badge";
@@ -28,8 +29,6 @@ const theme = themeQuartz.withPart(colorSchemeVariable).withParams({
   headerHeight: 42,
   wrapperBorderRadius: 12,
 });
-
-const POLL_MS = 10_000;
 
 function GroupHeader(props: ICellRendererParams<GridRow> & { onToggle: (key: string) => void }) {
   const g = props.data as GroupHeaderRow;
@@ -70,14 +69,12 @@ export function CartsDashboard() {
     }
   }, []);
 
+  const live = useLiveUpdates(load);
+
   useEffect(() => {
     load();
-    const poll = setInterval(load, POLL_MS);
     const clock = setInterval(() => setNow(Date.now()), 5_000);
-    return () => {
-      clearInterval(poll);
-      clearInterval(clock);
-    };
+    return () => clearInterval(clock);
   }, [load]);
 
   const toggle = useCallback((key: string) => {
@@ -210,7 +207,7 @@ export function CartsDashboard() {
           <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} /> Group by outcome
         </label>
         <span className="updated" aria-live="polite">
-          {error ? <span className="error">{error}</span> : updatedAt ? `Live · updated ${relativeTime(new Date(updatedAt).toISOString())}` : "Loading…"}
+          {error ? <span className="error">{error}</span> : updatedAt ? `${live ? "Live" : "Polling"} · updated ${relativeTime(new Date(updatedAt).toISOString())}` : "Loading…"}
         </span>
       </div>
 

@@ -11,6 +11,7 @@ import { ConsoleChannel } from "./channels/console.js";
 import { TwilioWhatsAppChannel } from "./channels/twilio.js";
 import type { ChannelAdapter } from "./channels/types.js";
 import type { Config } from "./config.js";
+import { ChangeBus, withChangeEvents } from "./events.js";
 import { createLogger } from "./log.js";
 import { PayPalClient } from "./paypal/client.js";
 import { MockPayPal } from "./paypal/mock.js";
@@ -30,6 +31,7 @@ declare module "fastify" {
 export interface AppDeps {
   config: Config;
   store: Store;
+  bus: ChangeBus;
   paypal: PayPalClient;
   mock: MockPayPal | null;
   monitor: AbandonmentMonitor;
@@ -50,7 +52,8 @@ export interface BuildOverrides {
 
 export async function buildApp(config: Config, overrides: BuildOverrides = {}): Promise<{ app: FastifyInstance; deps: AppDeps }> {
   const log = overrides.log ?? createLogger();
-  const store = overrides.store ?? createStore(config);
+  const bus = new ChangeBus();
+  const store = withChangeEvents(overrides.store ?? createStore(config), bus);
   const mock = config.mockPaypal ? new MockPayPal(config.publicUrl) : null;
   const paypal = new PayPalClient({
     clientId: config.paypal.clientId,
@@ -123,6 +126,7 @@ export async function buildApp(config: Config, overrides: BuildOverrides = {}): 
   const deps: AppDeps = {
     config,
     store,
+    bus,
     paypal,
     mock,
     monitor,
