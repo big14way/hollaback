@@ -27,7 +27,7 @@ export type GridRow = GroupHeaderRow | DataRow;
 export const GROUP_ORDER = ["recovered", "invoice_sent", "in_progress", "none", "no_reply", "declined", "paid"] as const;
 
 export function searchText(c: CartRow): string {
-  return [c.shopperName, c.shopperPhone, c.shopperEmail, itemsSummary(c.items), c.status, c.outcome, c.channel, c.paypalOrderId, c.abandonReason]
+  return [c.shopperName, c.shopperPhone, c.shopperEmail, itemsSummary(c.items), c.status, c.outcome, OUTCOME_LABEL[outcomeKey(c)], c.channel, c.paypalOrderId, c.invoiceId ? `invoice ${c.invoiceId}` : null, c.abandonReason]
     .filter(Boolean)
     .join(" ");
 }

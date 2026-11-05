@@ -199,10 +199,10 @@ export function CartsDashboard() {
       },
       {
         headerName: "Recovered",
-        width: 112,
+        width: 150,
         type: "rightAligned",
         valueGetter: (p) => (p.data?.kind === "cart" && p.data.status === "recovered" ? p.data.recoveredAmount : null),
-        valueFormatter: (p) => (p.value ? money(p.value as number) : ""),
+        valueFormatter: (p) => (p.value ? `${money(p.value as number)} · ${p.data?.kind === "cart" && p.data.invoiceId ? "invoice" : "link"}` : ""),
         cellClass: "money-cell",
       },
       {
@@ -259,7 +259,7 @@ export function CartsDashboard() {
         </div>
         <div className="kpi">
           <span className="kpi-label">In conversation</span>
-          <span className="kpi-value">{carts.filter((c) => c.status === "contacted").length}</span>
+          <span className="kpi-value">{carts.filter((c) => c.status === "contacted" && !c.outcome).length}</span>
           <span className="kpi-sub">agent waiting on a reply</span>
         </div>
       </section>
