@@ -33,6 +33,14 @@ export function registerPublicRoutes(app: FastifyInstance, deps: AppDeps): void 
     channel: deps.channel.name,
     agent: deps.agent.name,
     graceMs: config.graceMs,
+    // The recovery policy the dashboard's Playbook page shows (all non-secret).
+    policy: {
+      discountCapPct: config.discountCapPct,
+      followUpMs: config.followUpMs,
+      maxWaitMs: config.maxWaitMs,
+      webhookVerified: Boolean(config.paypal.webhookId) && !config.mockPaypal,
+      toolkit: deps.toolkit?.names ?? [],
+    },
   }));
 
   /** The drop-in snippet. */
