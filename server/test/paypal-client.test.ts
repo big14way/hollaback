@@ -34,6 +34,39 @@ describe("PayPal client", () => {
     expect(JSON.parse(verify.body).webhook_id).toBe("WH-ID");
   });
 
+  it("refreshes a stale token once when PayPal answers 403, then succeeds", async () => {
+    let tokens = 0;
+    const seen: string[] = [];
+    const fetchImpl: typeof fetch = async (input, init) => {
+      const url = String(input);
+      if (url.endsWith("/v1/oauth2/token")) {
+        tokens += 1;
+        return new Response(JSON.stringify({ access_token: `t${tokens}`, expires_in: 32000 }));
+      }
+      const auth = new Headers(init?.headers).get("authorization") ?? "";
+      seen.push(auth);
+      if (auth === "Bearer t1") return new Response(JSON.stringify({ name: "NOT_AUTHORIZED", message: "scope" }), { status: 403 });
+      return new Response(JSON.stringify({ id: "INV2-1", status: "DRAFT" }), { status: 201 });
+    };
+    const client = new PayPalClient({ clientId: "a", clientSecret: "b", apiBase: "https://x", fetch: fetchImpl });
+    const res = await client.request<{ id: string }>("POST", "/v2/invoicing/invoices", { detail: {} });
+    expect(res.data.id).toBe("INV2-1");
+    expect(seen).toEqual(["Bearer t1", "Bearer t2"]);
+    expect(tokens).toBe(2);
+  });
+
+  it("does not loop when a fresh token is still refused", async () => {
+    let calls = 0;
+    const fetchImpl: typeof fetch = async (input) => {
+      if (String(input).endsWith("/v1/oauth2/token")) return new Response(JSON.stringify({ access_token: "t", expires_in: 32000 }));
+      calls += 1;
+      return new Response(JSON.stringify({ name: "NOT_AUTHORIZED", message: "no" }), { status: 403 });
+    };
+    const client = new PayPalClient({ clientId: "a", clientSecret: "b", apiBase: "https://x", fetch: fetchImpl });
+    await expect(client.request("GET", "/v2/invoicing/invoices")).rejects.toMatchObject({ status: 403 });
+    expect(calls).toBe(2);
+  });
+
   it("refuses to verify when PayPal headers are missing", async () => {
     const client = new PayPalClient({ clientId: "a", clientSecret: "b", apiBase: "https://x", fetch: async () => new Response("{}") });
     expect(await client.verifyWebhookSignature({ rawBody: "{}", webhookId: "W", headers: {} })).toBe(false);

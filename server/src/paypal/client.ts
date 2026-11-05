@@ -73,17 +73,25 @@ export class PayPalClient {
     body?: unknown,
     headers: Record<string, string> = {},
   ): Promise<{ status: number; data: T }> {
-    const token = await this.accessToken();
-    const res = await this.fetchImpl(`${this.opts.apiBase}${path}`, {
-      method,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-        ...headers,
-      },
-      body: body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body),
-    });
+    const payload = body === undefined ? undefined : typeof body === "string" ? body : JSON.stringify(body);
+    const send = async () =>
+      this.fetchImpl(`${this.opts.apiBase}${path}`, {
+        method,
+        headers: {
+          Authorization: `Bearer ${await this.accessToken()}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...headers,
+        },
+        body: payload,
+      });
+    let res = await send();
+    // A cached token can be stale: revoked early (401), or minted before a feature such as Invoicing
+    // was enabled on the app, so it lacks that scope (403). Fetch a fresh token and retry once.
+    if (res.status === 401 || res.status === 403) {
+      this.token = null;
+      res = await send();
+    }
     const text = await res.text();
     let data: unknown = undefined;
     if (text) {
