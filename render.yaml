@@ -11,6 +11,17 @@ services:
     buildCommand: npx --yes pnpm@10.33.0 install --frozen-lockfile && npx --yes pnpm@10.33.0 --filter @hollaback/snippet --filter @hollaback/server build
     startCommand: node server/dist/index.js
     healthCheckPath: /health
+    # Only redeploy the API for changes it is built from. The free plan keeps carts in memory
+    # (unless Supabase is set), so every server redeploy clears the hosted demo's carts.
+    buildFilter:
+      paths:
+        - server/**
+        - snippet/**
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - tsconfig*.json
+        - render.yaml
     envVars:
       - key: NODE_VERSION
         value: "20"
