@@ -71,6 +71,7 @@ input[type="checkbox"] { accent-color: var(--ink); width: 16px; height: 16px; ma
 
 .pay-box { border: 1px solid var(--line); border-radius: 10px; padding: 16px; background: #fcfcfa; }
 .pay-buttons { display: grid; gap: 10px; }
+.pay-buttons paypal-button, .pay-buttons paypal-pay-later-button { display: block; width: 100%; }
 .mock-btn {
   font: inherit; font-size: 16px; border: 0; border-radius: 6px; padding: 13px; cursor: pointer;
   background: var(--paypal); color: var(--paypal-ink);
