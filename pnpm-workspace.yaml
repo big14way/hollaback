@@ -1,0 +1,10 @@
+packages:
+  - snippet
+  - server
+  - dashboard
+  - demo-store
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - unrs-resolver

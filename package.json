@@ -1,0 +1,36 @@
+{
+  "name": "hollaback",
+  "version": "0.1.0",
+  "private": true,
+  "description": "One script tag that brings abandoned PayPal checkouts back.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "dev": "pnpm --filter @hollaback/snippet build && concurrently -k -n server,dashboard,store -c magenta,cyan,yellow \"pnpm --filter @hollaback/server dev\" \"pnpm --filter @hollaback/dashboard dev\" \"pnpm --filter @hollaback/demo-store dev\"",
+    "dev:mock": "pnpm --filter @hollaback/snippet build && concurrently -k -n server,dashboard,store -c magenta,cyan,yellow \"pnpm --filter @hollaback/server dev:mock\" \"pnpm --filter @hollaback/dashboard dev\" \"pnpm --filter @hollaback/demo-store dev\"",
+    "demo:mock": "tsx scripts/demo-mock.ts",
+    "paypal:smoke": "tsx scripts/paypal-smoke.ts",
+    "paypal:webhook": "tsx scripts/register-webhook.ts",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.scripts.json && pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/node": "20.19.43",
+    "concurrently": "9.2.5",
+    "dotenv": "17.4.2",
+    "eslint": "9.39.5",
+    "globals": "16.5.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
+    "vitest": "3.2.7"
+  }
+}

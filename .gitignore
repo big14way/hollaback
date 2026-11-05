@@ -1,6 +1,7 @@
 BUILDSPEC.md
 .env
 .env.*
+!.env.example
 node_modules/
 dist/
 .next/
@@ -8,3 +9,6 @@ target/
 *.log
 .DS_Store
 neardev/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
