@@ -57,7 +57,7 @@ PASS: created -> abandoned -> agent message -> recovered
 Then open:
 
 - **Dashboard** at http://localhost:3000: the cart sits in the Recovered group and the recovered revenue counter has ticked up. Click the row for the transcript and the tool-call timeline (inputs, outputs, timings, webhooks).
-- **Demo store** at http://localhost:5173: click *Fill in a demo shopper* (it also ticks the consent box), click *Pay with PayPal*, then close the PayPal window. About 30 s later the agent's WhatsApp message prints in the `pnpm dev:mock` terminal and a new row appears on the dashboard (it polls every 10 s). On that cart's page, use the *reply as shopper* chips: `bit pricey rn` (Pay Later), `still too much tbh` (10 % discount), `just email me the invoice` (PayPal invoice), `STOP` (opt-out). Open the link the agent sent and approve to watch the row flip to Recovered.
+- **Demo store** at http://localhost:5173: click *Fill in a demo shopper* (it also ticks the consent box), click *Pay with PayPal*, then close the PayPal window. About 30 s later the agent's WhatsApp message prints in the `pnpm dev:mock` terminal and a new row appears on the dashboard without a refresh (it subscribes to the server's live event stream). On that cart's page, use the *reply as shopper* chips: `bit pricey rn` (Pay Later), `still too much tbh` (10 % discount), `just email me the invoice` (PayPal invoice), `STOP` (opt-out). Open the link the agent sent and approve to watch the row flip to Recovered.
 
 Mock mode replaces PayPal with an in-process fake of the Orders v2, Invoicing v2 and Webhooks endpoints. It is plugged in as the `fetch` of the real PayPal client, so the same request-building code runs in mock mode and in the sandbox. Its approval and invoice pages are clearly labelled as simulated.
 
@@ -83,6 +83,17 @@ Set `ANTHROPIC_API_KEY`. The agent runs `claude-sonnet-5-5` through the Vercel A
 ### Supabase
 
 Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and run `supabase/schema.sql` in the SQL editor. Without them an in-memory store with the same interface is used.
+
+## Deploy to Render (free tier)
+
+[`render.yaml`](render.yaml) is a Render Blueprint for three free services: the API server (web service) and the dashboard and demo store (static sites). Every secret is optional. With none set the hosted server runs in mock mode, exactly like `pnpm dev:mock`.
+
+1. In the Render dashboard choose **New > Blueprint** and select this repository. Leave unknown secrets empty.
+2. When the server is live, copy its `https://...onrender.com` URL. Set it as `NEXT_PUBLIC_HOLLABACK_API_URL` on the dashboard site and `HOLLABACK_API_URL` on the demo store site, then redeploy both. These values are baked in at build time.
+3. On the server, set `DEMO_STORE_URL` and `DASHBOARD_URL` to the two static site URLs. The server finds its own public URL from Render's `RENDER_EXTERNAL_URL`.
+4. With PayPal credentials set, register the webhook once: `pnpm paypal:webhook https://<server>.onrender.com/webhooks/paypal`, then set `PAYPAL_WEBHOOK_ID` on the server.
+
+The free web service sleeps after 15 idle minutes and the first request after that takes about a minute. To keep it awake, set the repository variable `HOLLABACK_SERVER_URL` to the server URL and the `keep-warm` GitHub Actions workflow pings `/health` every 10 minutes. The in-memory store resets when the service restarts, so set the Supabase variables for data that persists.
 
 ## PayPal products used
 
@@ -142,7 +153,7 @@ flowchart LR
   PayPal -- webhooks --> Hooks --> DB
   Events --> DB
   Agent --> DB
-  API --> Dash
+  API -- "REST + live events (SSE)" --> Dash
   DB --> API
 ```
 
@@ -150,7 +161,7 @@ flowchart LR
 hollaback/
   snippet/      vanilla TS -> esbuild -> dist/hb.js (< 15 KB budget enforced at build)
   server/       Fastify API, PayPal client + in-process mock, abandonment monitor, agent, channels, stores
-  dashboard/    Next.js 15 + ag-grid-react / ag-grid-community 36: carts grid, transcript page
+  dashboard/    Next.js 15 static export + ag-grid-react / ag-grid-community 36: carts grid, transcript page
   demo-store/   static checkout page using the PayPal JS SDK v6
   scripts/      paypal-smoke.ts, register-webhook.ts, demo-mock.ts
   supabase/     schema.sql

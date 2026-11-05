@@ -36,7 +36,8 @@ const SANDBOX_API = "https://api-m.sandbox.paypal.com";
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   const port = num(env.PORT, 4000);
-  const publicUrl = (env.SERVER_PUBLIC_URL || `http://localhost:${port}`).replace(/\/$/, "");
+  // On Render, RENDER_EXTERNAL_URL is the service's own https://<name>.onrender.com URL.
+  const publicUrl = (env.SERVER_PUBLIC_URL || env.RENDER_EXTERNAL_URL || `http://localhost:${port}`).replace(/\/$/, "");
   const clientId = env.PAYPAL_CLIENT_ID || "";
   const clientSecret = env.PAYPAL_CLIENT_SECRET || "";
   const mockPaypal = env.MOCK_PAYPAL === "1" || env.MOCK_PAYPAL === "true" || !clientId || !clientSecret;

@@ -1,0 +1,64 @@
+# Render Blueprint: one free web service (API) and two free static sites.
+# New > Blueprint in the Render dashboard, pick this repo. Every secret is optional:
+# with none set the server runs in mock mode (simulated PayPal, console channel, scripted agent).
+# After the first deploy, set the two static sites' API URL to the server's https://...onrender.com
+# URL and redeploy them (Next.js and the store bake it in at build time).
+services:
+  - type: web
+    name: hollaback-server
+    runtime: node
+    plan: free
+    buildCommand: npx --yes pnpm@10.33.0 install --frozen-lockfile && npx --yes pnpm@10.33.0 --filter @hollaback/snippet --filter @hollaback/server build
+    startCommand: node server/dist/index.js
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # SERVER_PUBLIC_URL defaults to Render's RENDER_EXTERNAL_URL.
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: PAYPAL_WEBHOOK_ID
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_WHATSAPP_FROM
+        value: whatsapp:+14155238886
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      # https://<demo store>.onrender.com, used for PayPal return_url / cancel_url.
+      - key: DEMO_STORE_URL
+        sync: false
+      - key: DASHBOARD_URL
+        sync: false
+
+  - type: web
+    name: hollaback-dashboard
+    runtime: static
+    buildCommand: npx --yes pnpm@10.33.0 install --frozen-lockfile && npx --yes pnpm@10.33.0 --filter @hollaback/dashboard build
+    staticPublishPath: ./dashboard/out
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # https://<server>.onrender.com
+      - key: NEXT_PUBLIC_HOLLABACK_API_URL
+        sync: false
+
+  - type: web
+    name: hollaback-demo-store
+    runtime: static
+    buildCommand: node demo-store/build.mjs
+    staticPublishPath: ./demo-store/dist
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # https://<server>.onrender.com
+      - key: HOLLABACK_API_URL
+        sync: false

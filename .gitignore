@@ -5,6 +5,7 @@ BUILDSPEC.md
 node_modules/
 dist/
 .next/
+out/
 target/
 *.log
 .DS_Store

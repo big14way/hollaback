@@ -169,7 +169,7 @@ async function main() {
   console.log(`   Tool calls:  ${tools.map((m) => `${m.toolCall!.name}${m.toolCall!.ok ? "" : " (refused)"}`).join(", ")}`);
   console.log(`   Webhooks:    ${d.webhooks.map((w) => `${w.eventType}${w.verified ? "" : " (unverified)"}`).join(", ")}`);
   console.log(`   Outcome:     ${d.conversations[0]?.outcome}`);
-  console.log(`\n   Transcript:  ${DASHBOARD}/carts/${order.cartId}`);
+  console.log(`\n   Transcript:  ${DASHBOARD}/cart/?id=${order.cartId}`);
   console.log(`   Dashboard:   ${DASHBOARD}\n`);
 
   if (app) await app.close();

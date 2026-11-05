@@ -162,7 +162,7 @@ export function CartsDashboard() {
 
   const onRowClicked = useCallback(
     (e: RowClickedEvent<GridRow>) => {
-      if (e.data?.kind === "cart") router.push(`/carts/${e.data.id}`);
+      if (e.data?.kind === "cart") router.push(`/cart/?id=${encodeURIComponent(e.data.id)}`);
     },
     [router],
   );
