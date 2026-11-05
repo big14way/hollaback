@@ -65,7 +65,7 @@ export class MockPayPal {
   readonly orders = new Map<string, PayPalOrder>();
   readonly invoices = new Map<string, PayPalInvoice>();
   readonly webhooks: Array<{ id: string; url: string; event_types: Array<{ name: string }> }> = [];
-  readonly requests: Array<{ method: string; path: string }> = [];
+  readonly requests: Array<{ method: string; path: string; body?: unknown }> = [];
   private returnUrls = new Map<string, { returnUrl?: string; cancelUrl?: string }>();
   /** Where emitted webhook events go (the server wires this to its own /webhooks/paypal route). */
   onEvent: (event: WebhookEvent) => void | Promise<void> = () => undefined;
@@ -85,7 +85,7 @@ export class MockPayPal {
         body = init.body;
       }
     }
-    this.requests.push({ method, path: url.pathname });
+    this.requests.push({ method, path: url.pathname, body });
     for (const [pattern, m, handler] of this.routes) {
       const match = url.pathname.match(pattern);
       if (match && m === method) {

@@ -140,6 +140,8 @@ export function createTools(ctx: AgentContext) {
         return { ok: true, invoiceId: cart.invoiceId, recipientViewUrl: cart.invoiceUrl, note: "Invoice already sent." };
       }
       const draft: InvoiceDraft = {
+        // Shown as the seller on PayPal's invoice page; without it PayPal shows the account's own profile name.
+        invoicer: { business_name: ctx.config.merchant.name.slice(0, 300) },
         detail: {
           currency_code: cart.currency,
           reference: cart.id.slice(0, 120),

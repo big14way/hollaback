@@ -70,6 +70,8 @@ describe("recovery loop (mock PayPal, console channel, scripted agent)", () => {
     await t.post("/channels/console/inbound", { from: PHONE, body: "just email me the invoice" });
     const view = await cartView(order.cartId);
     expect(view.cart.invoiceId).toMatch(/^INV2-/);
+    const created = t.deps.mock!.requests.find((r) => r.method === "POST" && r.path === "/v2/invoicing/invoices");
+    expect((created!.body as { invoicer?: { business_name?: string } }).invoicer?.business_name).toBe("Kicks Lagos");
     expect(view.conversations[0]!.outcome).toBe("invoice_sent");
     expect(t.outbox[1]!.body).toContain("sent a PayPal invoice to ada@example.com");
     expect(t.outbox[1]!.body).toContain(`/mock/paypal/invoice?id=${view.cart.invoiceId}`);
