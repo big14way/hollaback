@@ -1,0 +1,26 @@
+{
+  "name": "@hollaback/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hollaback API: PayPal orders, abandonment detection, webhooks and the recovery agent.",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "tsx watch --clear-screen=false src/index.ts",
+    "dev:mock": "MOCK_PAYPAL=1 tsx watch --clear-screen=false src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "start": "node dist/index.js",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "2.0.112",
+    "@fastify/cors": "11.4.0",
+    "@paypal/agent-toolkit": "1.11.0",
+    "@supabase/supabase-js": "2.109.0",
+    "ai": "5.0.285",
+    "dotenv": "17.4.2",
+    "fastify": "5.12.8",
+    "zod": "4.6.7"
+  }
+}
