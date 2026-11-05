@@ -133,9 +133,9 @@
             });
           }
 
-          state.payLaterEligible = methods.isEligible("paylater");
-          if (state.payLaterEligible) {
-            var details = methods.getDetails("paylater");
+          function showPayLater(found) {
+            state.payLaterEligible = true;
+            var details = found.getDetails("paylater");
             var payLaterSession = sdk.createPayLaterOneTimePaymentSession(handlers);
             var payLaterButton = document.querySelector("paypal-pay-later-button");
             payLaterButton.productCode = details.productCode;
@@ -145,6 +145,22 @@
               payLaterSession.start({ presentationMode: "auto" }, createOrder()).catch(onError);
             });
           }
+
+          // The sandbox eligibility answer for Pay Later occasionally flips to "no" for a few minutes.
+          // Ask again twice before hiding it; the order reports "not eligible" until PayPal says yes.
+          state.payLaterEligible = false;
+          (function checkPayLater(found, retries) {
+            if (found.isEligible("paylater")) return showPayLater(found);
+            if (retries <= 0) return;
+            setTimeout(function () {
+              sdk
+                .findEligibleMethods({ currencyCode: "USD", amount: cartTotal() })
+                .then(function (again) {
+                  checkPayLater(again, retries - 1);
+                })
+                .catch(function () {});
+            }, 1500);
+          })(methods, 2);
 
           // <paypal-message auto-bootstrap> renders once the messages component exists.
           sdk.createPayPalMessages({ currencyCode: "USD" });
