@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="hollaback-api" content="__HOLLABACK_API__">
+  <title>Kicks Lagos · Payment</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top"><a class="brand" href="./">Kicks Lagos</a></header>
+  <main class="layout single">
+    <section class="panel">
+      <h1 id="title">Finishing your payment…</h1>
+      <p id="detail" class="status">One moment while we confirm with PayPal.</p>
+      <p><a href="./">Back to the store</a></p>
+    </section>
+  </main>
+  <script>
+    (function () {
+      var API = document.querySelector('meta[name="hollaback-api"]').content.replace(/\/$/, "");
+      var token = new URLSearchParams(location.search).get("token");
+      var title = document.getElementById("title");
+      var detail = document.getElementById("detail");
+      if (!token) {
+        title.textContent = "No order to confirm";
+        detail.textContent = "This page is PayPal's return URL. It needs ?token=ORDER_ID.";
+        return;
+      }
+      fetch(API + "/orders/" + encodeURIComponent(token) + "/capture", { method: "POST" })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (res.status === "COMPLETED") {
+            title.textContent = "Payment complete. Thank you!";
+            detail.textContent = "PayPal order " + token + " is captured. A receipt is on its way.";
+            detail.className = "status ok";
+          } else {
+            title.textContent = "Payment not completed";
+            detail.textContent = (res.error || ("Order status: " + res.status));
+            detail.className = "status warn";
+          }
+        })
+        .catch(function () {
+          title.textContent = "Could not reach the server";
+          detail.className = "status error";
+        });
+    })();
+  </script>
+</body>
+</html>

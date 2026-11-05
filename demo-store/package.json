@@ -1,0 +1,13 @@
+{
+  "name": "@hollaback/demo-store",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Static demo checkout page using the PayPal JS SDK v6 with the Hollaback snippet.",
+  "scripts": {
+    "dev": "node serve.mjs",
+    "build": "node build.mjs",
+    "typecheck": "node --check serve.mjs && node --check build.mjs && node --check render.mjs && node --check store.js",
+    "test": "node --test test/render.test.mjs"
+  }
+}

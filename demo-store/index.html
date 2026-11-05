@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="hollaback-api" content="__HOLLABACK_API__">
+  <title>Kicks Lagos · Checkout</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- Hollaback: one script tag. Detects abandoned PayPal checkouts. -->
+  <script src="__HOLLABACK_API__/hb.js" data-merchant="demo" async></script>
+</head>
+<body>
+  <header class="top">
+    <a class="brand" href="./">Kicks Lagos</a>
+    <span class="secure">Secure checkout</span>
+  </header>
+
+  <div id="mock-banner" class="banner" hidden>
+    PayPal sandbox credentials are not set, so PayPal is simulated locally (<code>MOCK_PAYPAL=1</code>).
+    Add <code>PAYPAL_CLIENT_ID</code> and <code>PAYPAL_CLIENT_SECRET</code> to use the real sandbox.
+  </div>
+
+  <main class="layout" data-hb-checkout>
+    <section class="panel">
+      <h1>Checkout</h1>
+      <form id="details" autocomplete="on" onsubmit="return false">
+        <div class="field">
+          <label for="name">Full name</label>
+          <input id="name" name="name" autocomplete="name" placeholder="Ada Obi">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="ada@example.com">
+        </div>
+        <div class="field">
+          <label for="phone">WhatsApp number</label>
+          <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="+234 803 123 4567">
+        </div>
+      </form>
+      <button type="button" class="link" id="fill-demo">Fill in a demo shopper</button>
+
+      <h2>Pay with</h2>
+      <div class="pay-buttons">
+        <paypal-button id="paypal-button" type="pay" hidden></paypal-button>
+        <paypal-pay-later-button id="paylater-button" hidden></paypal-pay-later-button>
+        <button type="button" id="mock-paypal" class="mock-btn mock-paypal" hidden>Pay with <b>PayPal</b></button>
+        <button type="button" id="mock-paylater" class="mock-btn mock-paylater" hidden><b>PayPal</b> Pay Later</button>
+      </div>
+      <paypal-message id="paylater-message" auto-bootstrap amount="89.00" currency-code="USD"></paypal-message>
+      <p id="mock-message" class="mock-message" hidden>Pay in 4 interest-free payments of $22.25 with PayPal. <span>(simulated message)</span></p>
+
+      <div id="status" class="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <aside class="panel summary">
+      <h2>Order summary</h2>
+      <div class="item" data-hb-item data-name="Air Runners" data-price="89.00" data-qty="1" data-sku="AR-01">
+        <img src="sneaker.svg" alt="" width="64" height="64">
+        <div>
+          <strong>Air Runners</strong>
+          <span>Size 42 · Volt / Black</span>
+        </div>
+        <span class="price">$89.00</span>
+      </div>
+      <dl class="totals">
+        <div><dt>Subtotal</dt><dd>$89.00</dd></div>
+        <div><dt>Shipping</dt><dd>Free</dd></div>
+        <div class="grand"><dt>Total</dt><dd>$89.00 USD</dd></div>
+      </dl>
+      <p class="fine">Demo store for Hollaback. Sandbox payments only.</p>
+    </aside>
+  </main>
+
+  <script src="store.js"></script>
+  <!-- PayPal JS SDK v6 (sandbox). onLoad is defined in store.js. -->
+  <script async src="https://www.sandbox.paypal.com/web-sdk/v6/core" onload="onLoad()"></script>
+</body>
+</html>
