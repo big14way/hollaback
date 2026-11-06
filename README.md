@@ -129,24 +129,27 @@ The free web service sleeps after 15 idle minutes and the first request after th
 | **JS SDK v6** | `demo-store/` | `window.paypal.createInstance({ clientId, components: ["paypal-payments", "paypal-messages"], pageType: "checkout", testBuyerCountry })`, `findEligibleMethods({ currencyCode, amount })`, `isEligible("paypal" \| "paylater")`, `getDetails("paylater")`, `createPayPalOneTimePaymentSession`, `createPayLaterOneTimePaymentSession`, `session.start({ presentationMode: "auto" }, createOrder())`, `onApprove` / `onCancel` / `onError` |
 | **Pay Later** | demo store, agent | `<paypal-pay-later-button>`, `<paypal-message auto-bootstrap>` with `createPayPalMessages`, Pay in 4 offer from the agent |
 | **Orders v2** | `server/src/paypal/client.ts` | `POST /v1/oauth2/token`, `POST /v2/checkout/orders` (`user_action: PAY_NOW`, `payer-action` link), `GET /v2/checkout/orders/{id}` (abandonment check), `PATCH /v2/checkout/orders/{id}` (capped discount), `POST /v2/checkout/orders/{id}/capture` |
-| **Invoicing v2** | agent tool `create_and_send_invoice` | `POST /v2/invoicing/invoices`, `POST /v2/invoicing/invoices/{id}/send`, `GET /v2/invoicing/invoices/{id}` (`detail.metadata.recipient_view_url` is sent to the shopper) |
+| **Invoicing v2** | agent tools `create_and_send_invoice`, `send_invoice_reminder` | `POST /v2/invoicing/invoices`, `POST /v2/invoicing/invoices/{id}/send`, `GET /v2/invoicing/invoices/{id}` (`detail.metadata.recipient_view_url` is sent to the shopper), `POST /v2/invoicing/invoices/{id}/remind`; through the Agent Toolkit when credentials are set |
 | **Webhooks** | `server/src/routes/webhooks.ts`, `scripts/register-webhook.ts` | `POST /v1/notifications/webhooks`, `POST /v1/notifications/verify-webhook-signature` (raw body embedded verbatim), `POST /v1/notifications/simulate-event`; events `CHECKOUT.ORDER.APPROVED`, `CHECKOUT.ORDER.COMPLETED`, `PAYMENT.CAPTURE.COMPLETED`, `INVOICING.INVOICE.PAID` |
-| **PayPal Agent Toolkit** | `server/src/agent/toolkit.ts` | `@paypal/agent-toolkit/ai-sdk` tools `get_order`, `get_invoice`, `send_invoice_reminder`, `generate_invoice_qr_code` registered next to Hollaback's tools; `get_order` runs through the toolkit when credentials are set |
+| **PayPal Agent Toolkit** | `server/src/agent/toolkit.ts`, `server/src/agent/invoicing.ts` | `@paypal/agent-toolkit/ai-sdk` tools. Inside Hollaback's guarded tools: `create_invoice`, `send_invoice` and `get_invoice` (`create_and_send_invoice`), `get_order` (`get_order`), `send_invoice_reminder` (the cart's own invoice only, also the 15-minute follow-up). Given to the model as they are: `get_invoice` and `generate_invoice_qr_code`, limited to the cart's invoice. Mock mode uses the REST client instead, which is also the fallback when a toolkit call fails |
 
 ## AI tools used
 
 - **Claude Haiku 5.5 (`claude-haiku-5-5`) via the Vercel AI SDK** (`ai` v5, `@ai-sdk/anthropic`). The recovery agent: it reads the conversation, picks tools, and writes short WhatsApp replies. `server/src/agent/llm.ts`.
-- **PayPal Agent Toolkit** (`@paypal/agent-toolkit/ai-sdk`). The agent reads orders and invoices through PayPal's own toolkit. The toolkit builds AI SDK v4-style tools (`parameters`), so Hollaback re-wraps each one with AI SDK v5's `dynamicTool`.
+- **PayPal Agent Toolkit** (`@paypal/agent-toolkit/ai-sdk`). With PayPal credentials set, the agent creates and sends invoices, sends invoice reminders and checks order status through PayPal's own toolkit, and the dashboard marks those calls "via PayPal Agent Toolkit". Every input is checked against the toolkit's own schemas first. The toolkit builds AI SDK v4-style tools (`parameters`), so the ones the model calls directly are re-wrapped with AI SDK v5's `dynamicTool`.
 - **Agent tools** (`server/src/agent/tools.ts`), each logged to the transcript with input, output and timing:
 
 | Tool | PayPal call | Guardrail |
 | --- | --- | --- |
 | `send_checkout_link` | `GET` order, re-create if `VOIDED` | link appended by the server, never typed by the model |
 | `offer_pay_later` | Pay in 4 amount + checkout link | only when eligible (US, $30 to $1,500, SDK eligibility) |
-| `create_and_send_invoice` | Invoicing v2 create, send, get | needs a valid email; one invoice per cart |
+| `create_and_send_invoice` | Agent Toolkit `create_invoice`, `send_invoice`, `get_invoice` (Invoicing v2) | needs a valid email; one invoice per cart |
+| `send_invoice_reminder` | Agent Toolkit `send_invoice_reminder` (`POST .../remind`) | only the cart's own invoice (the model passes no id), only while unpaid, at most one every 10 minutes |
 | `apply_discount` | `PATCH /v2/checkout/orders/{id}` | hard cap 10 %, once per order, only after Pay Later was offered, only while the order is patchable |
 | `end_conversation` | none | marks declined or no reply |
-| `get_order` | Orders v2 or Agent Toolkit `get_order` | read only |
+| `get_order` | Agent Toolkit `get_order` (Orders v2) | read only, the cart's own order |
+
+When the shopper has an unpaid invoice, the one follow-up after 15 minutes of silence is PayPal's own reminder for that invoice rather than the checkout link again.
 
 Deterministic rules sit outside the model (`server/src/agent/guardrails.ts`): opt-out words (`STOP`, `no`, `unsubscribe` and others) end the chat before the model is called, two unanswered messages end the chat, the discount rules above, and no message is sent without WhatsApp consent.
 
@@ -208,7 +211,7 @@ The dashboard groups carts by outcome with full-width group rows, because AG Gri
 | `pnpm paypal:webhook [url]` | Register the PayPal webhook and print its id |
 | `pnpm build` | Build every package |
 
-Tests (Vitest and node:test) cover the checkout detection heuristics and trigger state machine, the grace timer against the PayPal mock (cancel, approve within grace, still in popup, timeout, voided, late cancel, idle), the discount cap and other guardrails, webhook signature request building, Twilio signatures, the outcome grouping, and the full recovery loop through the HTTP API (link, Pay Later, discount, invoice, opt-out, no consent, paid normally).
+Tests (Vitest and node:test) cover the checkout detection heuristics and trigger state machine, the grace timer against the PayPal mock (cancel, approve within grace, still in popup, timeout, voided, late cancel, idle), the discount cap and other guardrails, webhook signature request building, Twilio signatures, the outcome grouping, the full recovery loop through the HTTP API (link, Pay Later, discount, invoice, opt-out, no consent, paid normally), the PayPal Agent Toolkit path (inputs checked against the toolkit's own schemas, REST fallback, invoice reminders scoped to the cart), and per-number channel routing.
 
 ## Configuration
 

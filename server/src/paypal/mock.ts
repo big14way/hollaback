@@ -105,6 +105,7 @@ export class MockPayPal {
       [/^\/v2\/invoicing\/invoices$/, "POST", ({ body, headers }) => this.createInvoice(body as InvoiceDraft, headers)],
       [/^\/v2\/invoicing\/invoices\/[^/]+$/, "GET", ({ path }) => this.getInvoice(path.split("/")[4]!)],
       [/^\/v2\/invoicing\/invoices\/[^/]+\/send$/, "POST", ({ path }) => this.sendInvoice(path.split("/")[4]!)],
+      [/^\/v2\/invoicing\/invoices\/[^/]+\/remind$/, "POST", ({ path }) => this.remindInvoice(path.split("/")[4]!)],
       [/^\/v1\/notifications\/verify-webhook-signature$/, "POST", () => json(200, { verification_status: "SUCCESS" })],
       [/^\/v1\/notifications\/webhooks$/, "POST", ({ body }) => this.createWebhook(body as { url: string; event_types: Array<{ name: string }> })],
       [/^\/v1\/notifications\/webhooks$/, "GET", () => json(200, { webhooks: this.webhooks })],
@@ -229,6 +230,13 @@ export class MockPayPal {
     const view = `${this.publicUrl}/mock/paypal/invoice?id=${id}`;
     inv.detail.metadata = { ...inv.detail.metadata, recipient_view_url: view };
     return json(200, { links: [{ href: view, rel: "payer-view", method: "GET" }] });
+  }
+
+  private remindInvoice(id: string): Response {
+    const inv = this.invoices.get(id);
+    if (!inv) return error(404, "RESOURCE_NOT_FOUND", "INVALID_RESOURCE_ID", "invoice not found");
+    if (inv.status !== "SENT" && inv.status !== "UNPAID") return error(422, "UNPROCESSABLE_ENTITY", "CANT_REMIND", `invoice is ${inv.status}`);
+    return new Response(null, { status: 204 });
   }
 
   private createWebhook(body: { url: string; event_types: Array<{ name: string }> }): Response {

@@ -6,7 +6,8 @@ import type { ToolkitBridge } from "./toolkit.js";
 export type AgentEvent =
   | { kind: "abandoned"; reason: string }
   | { kind: "reply"; text: string }
-  | { kind: "follow_up" };
+  /** `invoiceReminded`: the server just had PayPal re-send the cart's unpaid invoice. */
+  | { kind: "follow_up"; invoiceReminded?: boolean };
 
 export interface AgentContext {
   cart: Cart;

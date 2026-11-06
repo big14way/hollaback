@@ -153,6 +153,11 @@ export class PayPalClient {
     });
   }
 
+  /** POST /v2/invoicing/invoices/{id}/remind (204 No Content) */
+  async remindInvoice(id: string, notification: { subject?: string; note?: string }): Promise<void> {
+    await this.request("POST", `/v2/invoicing/invoices/${encodeURIComponent(id)}/remind`, notification);
+  }
+
   /** GET /v2/invoicing/invoices/{id} */
   async getInvoice(id: string): Promise<PayPalInvoice> {
     return (await this.request<PayPalInvoice>("GET", `/v2/invoicing/invoices/${encodeURIComponent(id)}`)).data;

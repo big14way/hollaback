@@ -53,6 +53,8 @@ export interface BuildOverrides {
   /** Console channel for CONSOLE_NUMBERS when the main channel is not the console. */
   consoleChannel?: ChannelAdapter;
   agent?: RecoveryAgent;
+  /** PayPal Agent Toolkit bridge (null turns it off). By default it is built from the PayPal credentials. */
+  toolkit?: ToolkitBridge | null;
   log?: Logger;
 }
 
@@ -77,7 +79,7 @@ export async function buildApp(config: Config, overrides: BuildOverrides = {}): 
   const useClaude = config.agent.mode !== "scripted" && !!config.agent.anthropicApiKey;
   if (config.agent.mode === "claude" && !config.agent.anthropicApiKey) log.warn({}, "AGENT_MODE=claude but ANTHROPIC_API_KEY is not set; using the scripted agent");
   const agent: RecoveryAgent = overrides.agent ?? (useClaude ? new ClaudeAgent(config) : new ScriptedAgent());
-  const toolkit = createToolkitBridge(config, log);
+  const toolkit = overrides.toolkit !== undefined ? overrides.toolkit : createToolkitBridge(config, log);
 
   const recovery = new RecoveryService({ store, paypal, config, agent, channels, toolkit, log });
   const monitor = new AbandonmentMonitor({

@@ -3,7 +3,7 @@ import { generateText, stepCountIs, tool, type LanguageModel, type ModelMessage,
 import type { Config } from "../config.js";
 import type { Message } from "../store/types.js";
 import { classifyIntent } from "./guardrails.js";
-import { FOLLOW_UP, kickoff, systemPrompt } from "./prompt.js";
+import { followUp, kickoff, systemPrompt } from "./prompt.js";
 import { createTools, toolDescriptions, toolSchemas } from "./tools.js";
 import type { AgentContext, AgentEvent, RecoveryAgent } from "./types.js";
 
@@ -27,6 +27,11 @@ export class ClaudeAgent implements RecoveryAgent {
   buildTools(ctx: AgentContext): ToolSet {
     const t = createTools(ctx);
     const own: ToolSet = {
+      get_order: tool({
+        description: toolDescriptions.get_order,
+        inputSchema: toolSchemas.get_order,
+        execute: () => t.get_order({}),
+      }),
       send_checkout_link: tool({
         description: toolDescriptions.send_checkout_link,
         inputSchema: toolSchemas.send_checkout_link,
@@ -42,6 +47,11 @@ export class ClaudeAgent implements RecoveryAgent {
         inputSchema: toolSchemas.create_and_send_invoice,
         execute: (input) => t.create_and_send_invoice(input),
       }),
+      send_invoice_reminder: tool({
+        description: toolDescriptions.send_invoice_reminder,
+        inputSchema: toolSchemas.send_invoice_reminder,
+        execute: () => t.send_invoice_reminder({}),
+      }),
       apply_discount: tool({
         description: toolDescriptions.apply_discount,
         inputSchema: toolSchemas.apply_discount,
@@ -53,13 +63,8 @@ export class ClaudeAgent implements RecoveryAgent {
         execute: (input) => t.end_conversation(input),
       }),
     };
-    if (ctx.toolkit) return { ...own, ...ctx.toolkit.aiTools(ctx.logTool) };
-    own.get_order = tool({
-      description: toolDescriptions.get_order,
-      inputSchema: toolSchemas.get_order,
-      execute: () => t.get_order({}),
-    });
-    return own;
+    if (!ctx.toolkit) return own;
+    return { ...ctx.toolkit.aiTools(ctx.logTool, () => ({ invoiceId: ctx.cart.invoiceId })), ...own };
   }
 
   async respond(ctx: AgentContext, history: Message[], event: AgentEvent): Promise<string> {
@@ -68,7 +73,7 @@ export class ClaudeAgent implements RecoveryAgent {
       if (m.role === "agent" && m.body) messages.push({ role: "assistant", content: m.body });
       if (m.role === "shopper") messages.push({ role: "user", content: m.body });
     }
-    if (event.kind === "follow_up") messages.push({ role: "user", content: FOLLOW_UP });
+    if (event.kind === "follow_up") messages.push({ role: "user", content: followUp(ctx, event) });
     if (event.kind === "reply") {
       // The shopper message is already in history; add the classifier's hint for the model.
       messages.push({ role: "user", content: `[hint] objection type: ${classifyIntent(event.text)}` });

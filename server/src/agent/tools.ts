@@ -1,13 +1,17 @@
 import { z } from "zod";
 import { createOrderForCart, effectiveTotal, itemsTotal } from "../orders.js";
 import { money, PayPalApiError } from "../paypal/client.js";
-import type { InvoiceDraft } from "../paypal/types.js";
+import type { InvoiceDraft, PayPalOrder } from "../paypal/types.js";
 import type { ToolCallLog } from "../store/types.js";
 import { firstName, formatMoney, isValidEmail, round2 } from "../util.js";
-import { checkDiscount, payInFour } from "./guardrails.js";
+import { checkDiscount, checkInvoiceReminder, payInFour } from "./guardrails.js";
+import { issueInvoice, remindInvoice, VIA_TOOLKIT } from "./invoicing.js";
+import { toolkitError } from "./toolkit.js";
 import type { AgentContext } from "./types.js";
 
 export type ToolOutput = { ok: boolean } & Record<string, unknown>;
+
+const PAID_ORDER_STATUSES = new Set(["APPROVED", "COMPLETED"]);
 
 /** Input schemas shared by the LLM tool definitions and the scripted agent. */
 export const toolSchemas = {
@@ -17,6 +21,8 @@ export const toolSchemas = {
   create_and_send_invoice: z.object({
     email: z.string().optional().describe("Shopper email. Omit to use the email captured at checkout."),
   }),
+  // No invoice id: the server only ever reminds this cart's own invoice.
+  send_invoice_reminder: z.object({}),
   apply_discount: z.object({
     percent: z.number().describe("Percentage off the order total. Hard cap enforced server-side."),
     reason: z.string().describe("Why the shopper needs it, in a few words."),
@@ -28,13 +34,16 @@ export const toolSchemas = {
 } as const;
 
 export const toolDescriptions: Record<keyof typeof toolSchemas, string> = {
-  get_order: "Read the shopper's PayPal order (Orders v2): status and amount.",
+  get_order:
+    "Check the shopper's PayPal order (Orders v2, through the PayPal Agent Toolkit when configured): status, amount and whether it is already paid. Use it before sending the checkout link again if you are not sure they still need to pay.",
   send_checkout_link:
     "Attach the shopper's one-tap PayPal checkout link (the order's payer-action link) to your reply. Regenerates the order if it expired.",
   offer_pay_later:
     "Check PayPal Pay Later eligibility and get the Pay in 4 instalment amount; attaches the checkout link. Use this first for price objections.",
   create_and_send_invoice:
     "Create and send a PayPal invoice (Invoicing v2) to the shopper's email and attach the invoice payment link. Use when they ask to be emailed or invoiced.",
+  send_invoice_reminder:
+    "Have PayPal email the shopper a reminder for the invoice already sent for this order (PayPal Agent Toolkit), and attach the invoice link. Use when an invoice was sent and they say they'll pay later or ask for it again. Never create a second invoice.",
   apply_discount:
     "Lower the PayPal order total by a percentage (PATCH the order). Server-enforced cap; only after Pay Later was offered when eligible; once per order.",
   end_conversation: "End the conversation when the shopper declines or asks you to stop.",
@@ -62,7 +71,9 @@ async function timed(
       error: err instanceof PayPalApiError ? `${err.errorName}${err.issue ? ` (${err.issue})` : ""}` : String((err as Error)?.message ?? err),
     };
   }
-  await ctx.logTool({ name, source, input, output, ok, durationMs: Date.now() - started });
+  // Tools that did their PayPal work through the Agent Toolkit say so with `via`.
+  const via = (output as { via?: unknown } | null)?.via;
+  await ctx.logTool({ name, source: via === VIA_TOOLKIT ? VIA_TOOLKIT : source, input, output, ok, durationMs: Date.now() - started });
   return output;
 }
 
@@ -97,19 +108,32 @@ export function createTools(ctx: AgentContext) {
     };
   };
 
+  // Set when this turn sends a reminder, so parallel tool calls in one step can't send two.
+  let remindedAt: number | null = null;
+
   const handlers = {
     get_order: async (_input?: object): Promise<ToolOutput> => {
       const cart = await refreshCart();
       if (!cart.paypalOrderId) return { ok: false, reason: "No PayPal order yet." };
+      const fallbacks: string[] = [];
+      let order: PayPalOrder | null = null;
       if (ctx.toolkit?.has("get_order")) {
-        // Read through PayPal's own Agent Toolkit when credentials are configured.
-        const res = (await ctx.toolkit.run("get_order", { id: cart.paypalOrderId }, ctx.logTool)) as { status?: string };
-        if (res?.status) await ctx.store.updateCart(cart.id, { orderStatus: res.status });
-        return { ok: Boolean(res?.status), via: "paypal-agent-toolkit", orderId: cart.paypalOrderId, status: res?.status };
+        const res = await ctx.toolkit.call("get_order", { id: cart.paypalOrderId });
+        if (res.ok && (res.output as PayPalOrder | null)?.status) order = res.output as PayPalOrder;
+        else fallbacks.push(`get_order: ${toolkitError(res.output)}`);
       }
-      const order = await ctx.paypal.getOrder(cart.paypalOrderId);
-      await ctx.store.updateCart(cart.id, { orderStatus: order.status });
-      return { ok: true, orderId: order.id, status: order.status, amount: order.purchase_units?.[0]?.amount?.value };
+      const via = order ? VIA_TOOLKIT : "rest";
+      order ??= await ctx.paypal.getOrder(cart.paypalOrderId);
+      ctx.cart = await ctx.store.updateCart(cart.id, { orderStatus: order.status });
+      return {
+        ok: true,
+        via,
+        orderId: order.id,
+        status: order.status,
+        amount: order.purchase_units?.[0]?.amount?.value,
+        alreadyPaid: PAID_ORDER_STATUSES.has(order.status),
+        ...(fallbacks.length ? { fallbacks } : {}),
+      };
     },
 
     send_checkout_link: async (_input?: object): Promise<ToolOutput> => ensureLink(),
@@ -157,14 +181,50 @@ export function createTools(ctx: AgentContext) {
           unit_amount: money(cart.discountPct > 0 ? round2(i.unitPrice * (1 - cart.discountPct / 100)) : i.unitPrice, cart.currency),
         })),
       };
-      const invoiceId = await ctx.paypal.createInvoice(draft);
-      await ctx.paypal.sendInvoice(invoiceId);
-      const invoice = await ctx.paypal.getInvoice(invoiceId);
-      const url = invoice.detail.metadata?.recipient_view_url ?? null;
-      ctx.cart = await ctx.store.updateCart(cart.id, { invoiceId, invoiceUrl: url, shopperEmail: email });
+      const issued = await issueInvoice(ctx, draft);
+      const url = issued.recipientViewUrl;
+      ctx.cart = await ctx.store.updateCart(cart.id, { invoiceId: issued.invoiceId, invoiceUrl: url, shopperEmail: email });
       ctx.conversation = await ctx.store.updateConversation(ctx.conversation.id, { outcome: "invoice_sent" });
       if (url && !ctx.links.includes(url)) ctx.links.push(url);
-      return { ok: true, invoiceId, status: invoice.status, sentTo: email, recipientViewUrl: url };
+      return {
+        ok: true,
+        via: issued.via,
+        invoiceId: issued.invoiceId,
+        status: issued.status,
+        sentTo: email,
+        recipientViewUrl: url,
+        ...(issued.fallbacks.length ? { fallbacks: issued.fallbacks } : {}),
+      };
+    },
+
+    send_invoice_reminder: async (_input?: object): Promise<ToolOutput> => {
+      const cart = await refreshCart();
+      const last = (await ctx.store.listMessages(ctx.conversation.id))
+        .filter((m) => m.toolCall?.name === "send_invoice_reminder" && m.toolCall.ok)
+        .at(-1);
+      const decision = checkInvoiceReminder({
+        invoiceId: cart.invoiceId,
+        cartStatus: cart.status,
+        lastReminderAt: remindedAt ?? (last ? Date.parse(last.createdAt) : null),
+        now: Date.now(),
+      });
+      if (!decision.ok) return { ok: false, reason: decision.reason };
+      remindedAt = Date.now();
+      const merchant = ctx.config.merchant.name;
+      const { via, fallbacks } = await remindInvoice(ctx, decision.invoiceId, {
+        subject: `Reminder: your ${merchant} invoice`.slice(0, 200),
+        note: `Your order with ${merchant} is saved. Pay securely with PayPal whenever you're ready.`,
+      });
+      if (cart.invoiceUrl && !ctx.links.includes(cart.invoiceUrl)) ctx.links.push(cart.invoiceUrl);
+      return {
+        ok: true,
+        via,
+        invoiceId: decision.invoiceId,
+        sentTo: cart.shopperEmail,
+        recipientViewUrl: cart.invoiceUrl,
+        linkAttached: "The invoice link is appended under your reply.",
+        ...(fallbacks.length ? { fallbacks } : {}),
+      };
     },
 
     apply_discount: async (input: { percent: number; reason: string }): Promise<ToolOutput> => {
@@ -215,10 +275,8 @@ export function createTools(ctx: AgentContext) {
   const logged = {} as { [K in keyof Handlers]: (input: Parameters<Handlers[K]>[0]) => Promise<ToolOutput> };
   for (const name of Object.keys(handlers) as Array<keyof Handlers>) {
     const fn = handlers[name] as (input: unknown) => Promise<ToolOutput>;
-    // get_order delegates to the PayPal Agent Toolkit when present, which logs the call itself.
-    const delegated = name === "get_order" && ctx.toolkit?.has("get_order");
     (logged as Record<string, (input: unknown) => Promise<ToolOutput>>)[name] = (input: unknown) =>
-      delegated ? fn(input ?? {}) : (timed(ctx, name, "hollaback", input ?? {}, () => fn(input ?? {})) as Promise<ToolOutput>);
+      timed(ctx, name, "hollaback", input ?? {}, () => fn(input ?? {})) as Promise<ToolOutput>;
   }
   return logged;
 }

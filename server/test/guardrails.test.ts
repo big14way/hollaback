@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   canSendAgentMessage,
   checkDiscount,
+  checkInvoiceReminder,
   classifyIntent,
   discountedTotal,
   HARD_DISCOUNT_CAP_PCT,
+  INVOICE_REMINDER_GAP_MS,
   isOptOut,
   payInFour,
   payLaterEligibleFor,
@@ -90,5 +92,15 @@ describe("conversation guards", () => {
     expect(payLaterEligibleFor(20, "USD")).toBe(false);
     expect(payLaterEligibleFor(89, "USD", false)).toBe(false);
     expect(payInFour(89)).toBe(22.25);
+  });
+
+  it("reminds only an unpaid invoice of this cart, and not twice in quick succession", () => {
+    const now = Date.now();
+    const req = { invoiceId: "INV2-AAAA", cartStatus: "contacted", lastReminderAt: null, now };
+    expect(checkInvoiceReminder(req)).toEqual({ ok: true, invoiceId: "INV2-AAAA" });
+    expect(checkInvoiceReminder({ ...req, invoiceId: null }).ok).toBe(false);
+    expect(checkInvoiceReminder({ ...req, cartStatus: "recovered" }).ok).toBe(false);
+    expect(checkInvoiceReminder({ ...req, lastReminderAt: now - 60_000 }).ok).toBe(false);
+    expect(checkInvoiceReminder({ ...req, lastReminderAt: now - INVOICE_REMINDER_GAP_MS }).ok).toBe(true);
   });
 });

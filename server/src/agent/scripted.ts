@@ -33,6 +33,14 @@ export class ScriptedAgent implements RecoveryAgent {
     }
 
     if (event.kind === "follow_up") {
+      const invoiceUrl = ctx.cart.invoiceUrl;
+      if (invoiceUrl) {
+        if (!ctx.links.includes(invoiceUrl)) ctx.links.push(invoiceUrl);
+        const to = ctx.cart.shopperEmail ? ` to ${ctx.cart.shopperEmail}` : "";
+        return event.invoiceReminded
+          ? `Just checking in${name ? `, ${name}` : ""}. PayPal has re-sent your invoice${to}, or you can pay it right here:`
+          : `Just checking in${name ? `, ${name}` : ""}. Your PayPal invoice is still open, you can pay it right here:`;
+      }
       const link = await tools.send_checkout_link({});
       return link.ok
         ? `Just checking in${name ? `, ${name}` : ""}. ${itemSummary(ctx).replace(/^the/, "The")} is still saved for you:`
@@ -40,6 +48,13 @@ export class ScriptedAgent implements RecoveryAgent {
     }
 
     const intent = classifyIntent(event.text);
+    if (intent === "email" && ctx.cart.invoiceId) {
+      const res = await tools.send_invoice_reminder({});
+      if (res.ok) return `Sent again: PayPal just re-sent your invoice${res.sentTo ? ` to ${String(res.sentTo)}` : ""}. You can also pay it right here:`;
+      if (ctx.cart.invoiceUrl && !ctx.links.includes(ctx.cart.invoiceUrl)) ctx.links.push(ctx.cart.invoiceUrl);
+      return "Your PayPal invoice is already in your inbox. You can also pay it right here:";
+    }
+
     if (intent === "email") {
       const email = extractEmail(event.text) ?? undefined;
       const res = await tools.create_and_send_invoice({ email });

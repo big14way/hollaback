@@ -47,6 +47,26 @@ export function checkDiscount(req: DiscountRequest): DiscountDecision {
   return { ok: true, percent, newTotal, discountAmount: round2(req.total - newTotal) };
 }
 
+/** Minimum gap between two PayPal reminder emails for the same invoice. */
+export const INVOICE_REMINDER_GAP_MS = 10 * 60_000;
+
+export type ReminderDecision = { ok: true; invoiceId: string } | { ok: false; reason: string };
+
+/** Reminders only ever go to the cart's own invoice, while it is unpaid, and not in quick succession. */
+export function checkInvoiceReminder(req: {
+  invoiceId: string | null;
+  cartStatus: string;
+  lastReminderAt: number | null;
+  now: number;
+}): ReminderDecision {
+  if (!req.invoiceId) return { ok: false, reason: "No PayPal invoice has been sent for this order. Use create_and_send_invoice." };
+  if (req.cartStatus === "recovered" || req.cartStatus === "paid") return { ok: false, reason: "This order is already paid." };
+  if (req.lastReminderAt !== null && req.now - req.lastReminderAt < INVOICE_REMINDER_GAP_MS) {
+    return { ok: false, reason: "PayPal already re-sent this invoice a few minutes ago. Point them to the invoice link instead." };
+  }
+  return { ok: true, invoiceId: req.invoiceId };
+}
+
 const OPT_OUT_EXACT = new Set([
   "stop",
   "stopall",

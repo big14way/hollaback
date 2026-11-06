@@ -65,7 +65,15 @@ describe("Claude agent (Vercel AI SDK) wiring", () => {
     expect(first.providerOptions?.anthropic?.effort).toBe("medium");
     expect(first.toolChoice?.type ?? "auto").toBe("auto");
     expect(first.tools?.map((tl) => tl.name).sort()).toEqual(
-      ["apply_discount", "create_and_send_invoice", "end_conversation", "get_order", "offer_pay_later", "send_checkout_link"].sort(),
+      [
+        "apply_discount",
+        "create_and_send_invoice",
+        "end_conversation",
+        "get_order",
+        "offer_pay_later",
+        "send_checkout_link",
+        "send_invoice_reminder",
+      ].sort(),
     );
     const system = first.prompt.find((m) => m.role === "system");
     expect(JSON.stringify(system)).toContain("Discount cap: 10%");

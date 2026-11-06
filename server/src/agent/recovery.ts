@@ -8,6 +8,7 @@ import { firstName, formatMoney } from "../util.js";
 import { canSendAgentMessage, isOptOut, MAX_UNANSWERED } from "./guardrails.js";
 import { ScriptedAgent } from "./scripted.js";
 import type { ToolkitBridge } from "./toolkit.js";
+import { createTools } from "./tools.js";
 import type { AgentContext, AgentEvent, RecoveryAgent } from "./types.js";
 
 export interface RecoveryDeps {
@@ -111,6 +112,13 @@ export class RecoveryService {
         await store.addMessage({ conversationId, role: "system", body: `tool:${call.name}`, toolCall: call });
       },
     };
+    if (event.kind === "follow_up" && cart.invoiceId) {
+      // An unpaid invoice is out: the last nudge is PayPal's own reminder for this cart's
+      // invoice (guarded in the tool), not the checkout link again.
+      const reminder = await createTools(ctx).send_invoice_reminder({});
+      if (ctx.cart.invoiceUrl && !ctx.links.includes(ctx.cart.invoiceUrl)) ctx.links.push(ctx.cart.invoiceUrl);
+      event = { kind: "follow_up", invoiceReminded: reminder.ok };
+    }
     const history = await store.listMessages(conversationId);
 
     let text: string;
