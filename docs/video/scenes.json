@@ -189,7 +189,7 @@
      ".kpis",
      1.2,
      900,
-     2600
+     2400
     ],
     [
      "unzoom",
@@ -200,7 +200,7 @@
      ".table-card",
      1.12,
      900,
-     3200
+     3000
     ],
     [
      "unzoom",
@@ -221,7 +221,7 @@
     ],
     [
      "wait",
-     2400
+     2200
     ],
     [
      "press",
@@ -233,7 +233,23 @@
     ],
     [
      "wait",
-     1200
+     1000
+    ],
+    [
+     "moveTo",
+     ".table-card .btn",
+     800
+    ],
+    [
+     "zoom",
+     ".table-card .card-head",
+     1.5,
+     900,
+     2200
+    ],
+    [
+     "unzoom",
+     600
     ],
     [
      "scrollTo",
@@ -246,7 +262,7 @@
      ".funnel",
      1.2,
      900,
-     2600
+     2400
     ],
     [
      "unzoom",
@@ -260,7 +276,7 @@
     [
      "saveVar",
      "cartId",
-     "fetch('https://hollaback-server.onrender.com/api/carts').then(r => r.json()).then(d => (d.carts.find(c => c.status === 'recovered' && !c.invoiceId) || d.carts[0]).id)"
+     "fetch('https://hollaback-server.onrender.com/api/carts').then(r => r.json()).then(d => (d.carts.find(c => c.status === 'recovered' && c.invoiceId) || d.carts[0]).id)"
     ],
     [
      "goto",
@@ -276,7 +292,7 @@
      ".chat",
      1.2,
      900,
-     3500
+     3200
     ],
     [
      "unzoom",
@@ -299,7 +315,7 @@
      ".timeline",
      1.3,
      900,
-     4000
+     4200
     ],
     [
      "unzoom",
