@@ -4,7 +4,7 @@
 
 A merchant adds one script tag to a PayPal checkout. When a shopper opens PayPal and walks away, Hollaback checks with PayPal that the order is still unpaid, then an AI agent messages the shopper on WhatsApp within a minute, answers why they stopped, and sends a PayPal way to finish: Pay Later, a capped discount on the same order, a PayPal invoice, or the checkout link. A cart counts as recovered only when PayPal confirms the payment.
 
-**[Try the live demo](#try-the-hosted-demo-in-two-minutes)** · [Demo store](https://hollaback-demo-store.onrender.com) · [Merchant dashboard](https://hollaback-dashboard.onrender.com) · [Sources for every number](docs/sources.md) · MIT licence
+**[▶ Watch the demo (2:54)](https://youtu.be/ZIPeX68g_Qc)** · **[Try the live demo](#try-the-hosted-demo-in-two-minutes)** · [Demo store](https://hollaback-demo-store.onrender.com) · [Merchant dashboard](https://hollaback-dashboard.onrender.com) · [Sources for every number](docs/sources.md) · MIT licence
 
 <table>
   <tr>
