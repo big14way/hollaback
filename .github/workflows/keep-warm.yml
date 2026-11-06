@@ -1,6 +1,8 @@
 # Render free web services sleep after 15 idle minutes. When the repository variable
 # HOLLABACK_SERVER_URL is set (https://<server>.onrender.com), ping /health so the
 # hosted demo answers immediately. Does nothing when the variable is unset.
+# HOLLABACK_WARM_FROM (YYYY-MM-DD, optional) delays the pings until that day, which keeps
+# a month's free instance hours for the days that matter.
 name: keep-warm
 
 on:
@@ -17,4 +19,12 @@ jobs:
     timeout-minutes: 3
     steps:
       - name: Ping the Hollaback server
-        run: curl -fsS --retry 3 --retry-delay 20 --max-time 90 "${{ vars.HOLLABACK_SERVER_URL }}/health"
+        env:
+          URL: ${{ vars.HOLLABACK_SERVER_URL }}
+          FROM: ${{ vars.HOLLABACK_WARM_FROM }}
+        run: |
+          if [ -n "$FROM" ] && [ "$(date -u +%F)" \< "$FROM" ]; then
+            echo "Keep-warm starts on $FROM; skipping."
+            exit 0
+          fi
+          curl -fsS --retry 3 --retry-delay 20 --max-time 90 "$URL/health"

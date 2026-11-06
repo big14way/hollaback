@@ -15,6 +15,9 @@ Every figure the video states, where it comes from, and when it was checked (Nov
 
 Public posts on X by online sellers in Nigeria, quoted on screen without their names.
 
+- "I have just put off all my campaigns that's doing amazingly well" — a seller replying that her only challenge is buyers abandoning at payment ([Oct 30 2026](https://x.com/EcomMumsy/status/2116202112099013006))
+- "Forget heartbreak … I got like 5 yesterday" / "Why would someone visit my Selar link, and all of a sudden change their mind on paying?" ([Aug 13 2026](https://x.com/semmadaisy/status/2087998019928993807))
+- "contact the abandoned transactions and collect payments from them manually" (Oct 1 2026, same seller as the Sep 16 post below)
 - "the abandoned transaction situation is getting worrisome" ([Oct 8 2026](https://x.com/yfly58/status/2108204578436940207))
 - "how do you close abandoned transactions … Emails or WhatsApp, please" ([Sep 16 2026](https://x.com/PersonalRa25/status/2100223869151801740))
 - "Abandoned transactions are completely normal, but what you do after is what matters." ([Aug 6 2026](https://x.com/tryselar/status/2085320124534243767))
