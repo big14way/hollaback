@@ -30,6 +30,13 @@ Most shoppers who start a checkout never finish it. Hollaback watches a merchant
 | Merchant dashboard | https://hollaback-dashboard.onrender.com |
 | API server (`/health`) | https://hollaback-server.onrender.com/health |
 
+**Try it in two minutes, no WhatsApp needed:**
+
+1. Open the demo store and click *Fill in a demo shopper* (it also ticks the WhatsApp consent box).
+2. Click *Pay with PayPal* or *Pay Later*, then close the PayPal window without paying.
+3. About 30 seconds later the cart appears on the dashboard. Open it: the agent has written to the shopper. Reply with the chips, for example `bit pricey rn` (Pay Later) or `just email me the invoice` (a real PayPal sandbox invoice, created through the PayPal Agent Toolkit).
+4. Open the PayPal link or invoice the agent sent, log in as the sandbox buyer below and pay. The cart flips to Recovered on the dashboard within seconds of PayPal's webhook.
+
 The server runs on Render's free tier, so the first request after it has been idle can take about a minute. To drive a full recovery against the hosted server from a clone: `HOLLABACK_API_URL=https://hollaback-server.onrender.com pnpm demo:mock`, then watch the row flip on the dashboard. That script only works while the server runs in mock mode (`/health` shows `"mockPaypal": true`), because it approves the order through the simulated PayPal.
 
 To pay as the shopper on the hosted demo (the PayPal popup, a link the agent sends on WhatsApp, or an invoice), log in with this PayPal **sandbox** buyer. It is a US test account that only holds sandbox money:
