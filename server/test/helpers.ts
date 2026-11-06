@@ -30,10 +30,10 @@ export class FakeWhatsAppChannel implements ChannelAdapter {
 }
 
 /** `overrides.channel` replaces the main channel (the console channel by default). */
-export async function makeApp(env: Record<string, string> = {}, overrides: Omit<BuildOverrides, "consoleChannel" | "log"> = {}): Promise<TestApp> {
+export async function makeApp(env: Record<string, string> = {}, overrides: Omit<BuildOverrides, "consoleChannel"> = {}): Promise<TestApp> {
   const config = loadConfig({ MOCK_PAYPAL: "1", GRACE_MS: "60", ABANDON_SETTLE_MS: "10", FOLLOW_UP_MS: "0", ...env });
   const consoleChannel = new ConsoleChannel({ quiet: true });
-  const { app, deps } = await buildApp(config, { channel: consoleChannel, ...overrides, consoleChannel, log: silentLogger });
+  const { app, deps } = await buildApp(config, { channel: consoleChannel, log: silentLogger, ...overrides, consoleChannel });
   await app.ready();
   const post = async <T>(url: string, payload?: unknown, contentType = "application/json") => {
     const res = await app.inject({

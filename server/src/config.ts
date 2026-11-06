@@ -30,6 +30,9 @@ export interface Config {
   /** Shopper numbers (E.164) whose conversations stay on the console channel, whatever the main channel is. */
   consoleNumbers: string[];
   supabase: { url: string; serviceRoleKey: string };
+  /** Postgres (e.g. Neon) connection string for the memory store's snapshot. Empty: no snapshot. */
+  databaseUrl: string;
+  snapshotDebounceMs: number;
   snippetPath: string | null;
 }
 
@@ -99,6 +102,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       url: env.SUPABASE_URL || "",
       serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY || "",
     },
+    databaseUrl: env.DATABASE_URL || "",
+    snapshotDebounceMs: num(env.SNAPSHOT_DEBOUNCE_MS, 1_000),
     snippetPath: env.SNIPPET_PATH || null,
   };
 }

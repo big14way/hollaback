@@ -21,7 +21,7 @@ import { registerChannelRoutes } from "./routes/channels.js";
 import { registerMockRoutes } from "./routes/mock.js";
 import { registerPublicRoutes } from "./routes/public.js";
 import { registerWebhookRoutes } from "./routes/webhooks.js";
-import { createStore, type Store } from "./store/index.js";
+import { openStore, type SnapshotBackend, type Store } from "./store/index.js";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -55,13 +55,19 @@ export interface BuildOverrides {
   agent?: RecoveryAgent;
   /** PayPal Agent Toolkit bridge (null turns it off). By default it is built from the PayPal credentials. */
   toolkit?: ToolkitBridge | null;
+  /** Snapshot backend for the memory store (null turns it off). By default Postgres when DATABASE_URL is set. */
+  snapshot?: SnapshotBackend | null;
   log?: Logger;
 }
 
 export async function buildApp(config: Config, overrides: BuildOverrides = {}): Promise<{ app: FastifyInstance; deps: AppDeps }> {
   const log = overrides.log ?? createLogger();
   const bus = new ChangeBus();
-  const store = withChangeEvents(overrides.store ?? createStore(config), bus);
+  const opened = overrides.store ? { store: overrides.store, snapshot: null } : await openStore(config, { log, snapshot: overrides.snapshot });
+  const store = withChangeEvents(opened.store, bus);
+  const snapshot = opened.snapshot;
+  // Every write the bus announces marks the snapshot dirty; it saves about a second later.
+  if (snapshot) bus.subscribe(() => snapshot.schedule());
   const mock = config.mockPaypal ? new MockPayPal(config.publicUrl) : null;
   const paypal = new PayPalClient({
     clientId: config.paypal.clientId,
@@ -169,6 +175,8 @@ export async function buildApp(config: Config, overrides: BuildOverrides = {}): 
   app.addHook("onClose", async () => {
     monitor.stopAll();
     recovery.stop();
+    // Writes from the last second would otherwise be lost on a deploy or free-tier sleep.
+    await snapshot?.close();
   });
 
   return { app, deps };

@@ -98,7 +98,7 @@ export interface CheckoutEvent {
 }
 
 export interface Store {
-  readonly kind: "memory" | "supabase";
+  readonly kind: "memory" | "memory+postgres" | "supabase";
   createCart(input: NewCart): Promise<Cart>;
   updateCart(id: string, patch: Partial<Omit<Cart, "id" | "createdAt">>): Promise<Cart>;
   getCart(id: string): Promise<Cart | null>;

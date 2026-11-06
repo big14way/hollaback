@@ -3,14 +3,49 @@ import type { Cart, CheckoutEvent, Conversation, Message, NewCart, Store, Stored
 
 const now = () => new Date().toISOString();
 
+/** Everything the memory store holds, as plain JSON (the Postgres snapshot). */
+export interface StoreState {
+  version: 1;
+  carts: Cart[];
+  conversations: Conversation[];
+  messages: Message[];
+  webhooks: StoredWebhookEvent[];
+  events: CheckoutEvent[];
+}
+
 /** Zero-setup store used when SUPABASE_URL is not set. Same interface as the Supabase store. */
 export class MemoryStore implements Store {
-  readonly kind = "memory" as const;
+  readonly kind: "memory" | "memory+postgres";
   private carts = new Map<string, Cart>();
   private conversations = new Map<string, Conversation>();
   private messages: Message[] = [];
   private webhooks: StoredWebhookEvent[] = [];
   private events: CheckoutEvent[] = [];
+
+  constructor(opts: { kind?: MemoryStore["kind"]; state?: StoreState | null } = {}) {
+    this.kind = opts.kind ?? "memory";
+    const s = opts.state;
+    if (!s) return;
+    if (s.version !== 1 || ![s.carts, s.conversations, s.messages, s.webhooks, s.events].every(Array.isArray)) {
+      throw new Error("unrecognised store snapshot");
+    }
+    this.carts = new Map(s.carts.map((c) => [c.id, structuredClone(c)]));
+    this.conversations = new Map(s.conversations.map((c) => [c.id, structuredClone(c)]));
+    this.messages = structuredClone(s.messages);
+    this.webhooks = structuredClone(s.webhooks);
+    this.events = structuredClone(s.events);
+  }
+
+  exportState(): StoreState {
+    return structuredClone({
+      version: 1 as const,
+      carts: [...this.carts.values()],
+      conversations: [...this.conversations.values()],
+      messages: this.messages,
+      webhooks: this.webhooks,
+      events: this.events,
+    });
+  }
 
   async createCart(input: NewCart): Promise<Cart> {
     const ts = now();

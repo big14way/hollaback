@@ -107,9 +107,12 @@ On the Twilio sandbox, `STOP` is Twilio's own keyword: it removes your phone fro
 
 Set `ANTHROPIC_API_KEY`. The agent runs `claude-haiku-5-5` (Claude Haiku 5.5) through the Vercel AI SDK, at effort `medium` (`AGENT_EFFORT`). Without a key the scripted agent runs the same policy with the same tools, so every flow works offline.
 
-### Supabase
+### Persistence
 
-Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and run `supabase/schema.sql` in the SQL editor. Without them an in-memory store with the same interface is used.
+By default carts and conversations live in memory and are gone after a restart. Two ways to keep them:
+
+- **Postgres snapshot** (simplest, works with a free Neon database): set `DATABASE_URL`. On boot the server loads the latest snapshot, and about a second after each write it saves the whole store as one jsonb row in `hollaback_snapshot` (created if missing; one row per server URL). If the database can't be reached at boot, the server logs a warning, starts empty and doesn't save that run, so the saved data is never overwritten. `/health` reports `"store": "memory+postgres"` while it is on.
+- **Supabase**: set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and run `supabase/schema.sql` in the SQL editor. It takes precedence over `DATABASE_URL`.
 
 ## Deploy to Render (free tier)
 
@@ -120,7 +123,7 @@ Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` and run `supabase/schema.sql`
 3. On the server, set `DEMO_STORE_URL` and `DASHBOARD_URL` to the two static site URLs. The server finds its own public URL from Render's `RENDER_EXTERNAL_URL`.
 4. With PayPal credentials set, register the webhook once: `pnpm paypal:webhook https://<server>.onrender.com/webhooks/paypal`, then set `PAYPAL_WEBHOOK_ID` on the server.
 
-The free web service sleeps after 15 idle minutes and the first request after that takes about a minute. To keep it awake, set the repository variable `HOLLABACK_SERVER_URL` to the server URL and the `keep-warm` GitHub Actions workflow pings `/health` every 10 minutes. The in-memory store resets when the service restarts, so set the Supabase variables for data that persists.
+The free web service sleeps after 15 idle minutes and the first request after that takes about a minute. To keep it awake, set the repository variable `HOLLABACK_SERVER_URL` to the server URL and the `keep-warm` GitHub Actions workflow pings `/health` every 10 minutes. The in-memory store resets when the service restarts or sleeps, so set `DATABASE_URL` to a free Neon Postgres database to keep the demo data (see [Persistence](#persistence)).
 
 ## PayPal products used
 
@@ -171,7 +174,7 @@ flowchart LR
   end
   PayPal[("PayPal<br/>Orders v2, Invoicing v2,<br/>Webhooks")]
   WA["WhatsApp<br/>(Twilio)"]
-  DB[("Supabase<br/>or in-memory")]
+  DB[("In-memory + Postgres snapshot<br/>or Supabase")]
   Dash["Dashboard<br/>Next.js + AG Grid"]
 
   SDK -- createOrder --> Orders --> PayPal

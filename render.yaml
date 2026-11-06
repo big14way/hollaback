@@ -11,8 +11,8 @@ services:
     buildCommand: npx --yes pnpm@10.33.0 install --frozen-lockfile && npx --yes pnpm@10.33.0 --filter @hollaback/snippet --filter @hollaback/server build
     startCommand: node server/dist/index.js
     healthCheckPath: /health
-    # Only redeploy the API for changes it is built from. The free plan keeps carts in memory
-    # (unless Supabase is set), so every server redeploy clears the hosted demo's carts.
+    # Only redeploy the API for changes it is built from. The free plan keeps carts in memory,
+    # so without DATABASE_URL (or Supabase) every redeploy or sleep clears the hosted demo's carts.
     buildFilter:
       paths:
         - server/**
@@ -40,6 +40,9 @@ services:
         sync: false
       - key: TWILIO_WHATSAPP_FROM
         value: whatsapp:+14155238886
+      # Neon Postgres connection string: keeps the in-memory store across restarts.
+      - key: DATABASE_URL
+        sync: false
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_SERVICE_ROLE_KEY
