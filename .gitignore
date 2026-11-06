@@ -13,3 +13,4 @@ neardev/
 coverage/
 *.tsbuildinfo
 next-env.d.ts
+docs/video/out/

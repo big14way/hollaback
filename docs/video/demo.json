@@ -1,0 +1,475 @@
+{
+ "clips_dir": "clips",
+ "work_dir": ".build",
+ "output": "hollaback-demo.mp4",
+ "voice": "en-US-AndrewMultilingualNeural",
+ "voice_rate": "+14%",
+ "crossfade": 0.6,
+ "sfx_gain": 0.6,
+ "brand": {
+  "name": "Hollaback",
+  "domain": "hollaback-dashboard.onrender.com",
+  "paper": "#0c1411",
+  "paper_deep": "#132019",
+  "ink": "#f3f6f4",
+  "ink_soft": "#b6c4bc",
+  "ink_faint": "#6c7d74",
+  "accent": "#c9f27a",
+  "accent_soft": "#e6f9c4",
+  "card": "#12553f"
+ },
+ "scenes": [
+  {
+   "id": "t0",
+   "kind": "title",
+   "tagline": "Abandoned PayPal checkouts, won back on WhatsApp.",
+   "tag": "Live on PayPal sandbox \u00b7 AI agent on Claude Haiku 5.5 \u00b7 WhatsApp",
+   "vo": "Hollaback. When a shopper walks away from a PayPal checkout, an AI agent wins them back on WhatsApp, within a minute."
+  },
+  {
+   "id": "s1",
+   "kind": "slide",
+   "label": "THE PROBLEM",
+   "head": "Sellers watch the money\nwalk away",
+   "bullets": [
+    {
+     "k": "Seller on X \u00b7 Oct 2026",
+     "v": "\"the abandoned transaction situation is getting worrisome\""
+    },
+    {
+     "k": "Seller on X \u00b7 Sep 2026",
+     "v": "\"how do you close abandoned transactions \u2026 Emails or WhatsApp, please\""
+    },
+    {
+     "k": "Baymard Institute \u00b7 2026",
+     "v": "70% of online shopping carts are abandoned"
+    }
+   ],
+   "columns": 1,
+   "vo": "Online sellers in Nigeria say it plainly: the abandoned transaction situation is getting worrisome. One asks how to follow up: emails, or WhatsApp? And it isn't just them. Seven in ten online carts are abandoned.",
+   "image": "img/p_store.jpg"
+  },
+  {
+   "id": "s2",
+   "kind": "slide",
+   "label": "THE GAP",
+   "head": "Reminder emails\ndon't bring them back",
+   "bullets": [
+    {
+     "k": "Baymard \u00b7 US and EU",
+     "v": "$260B in lost orders is recoverable"
+    },
+    {
+     "k": "Omnisend \u00b7 2025 data",
+     "v": "1.5% of cart-reminder emails convert"
+    },
+    {
+     "k": "Meta \u00b7 2026",
+     "v": "72% more likely to buy where they can message"
+    },
+    {
+     "k": "PayPal \u00b7 where offered",
+     "v": "+29% PayPal sales with Pay Later messaging"
+    }
+   ],
+   "columns": 1,
+   "vo": "Baymard puts recoverable lost orders at two hundred and sixty billion dollars. The usual fix, a reminder email, turns about one and a half percent into sales. Shoppers would rather message. And where PayPal Pay Later is offered, PayPal sales rise twenty-nine percent.",
+   "image": "img/p_phone.jpg"
+  },
+  {
+   "id": "s3",
+   "kind": "slide",
+   "label": "WHAT CHANGES",
+   "head": "One script tag.\nA PayPal way to finish.",
+   "bullets": [
+    "Notices the walk-away on the PayPal checkout",
+    "Asks PayPal whether the order is still unpaid",
+    "Answers the real objection on WhatsApp",
+    "Counts it only when PayPal confirms payment"
+   ],
+   "columns": 1,
+   "diagram": {
+    "boxes": [
+     {
+      "id": "a",
+      "box": [
+       36,
+       40,
+       320,
+       140
+      ],
+      "title": "PayPal checkout",
+      "sub": "JS SDK v6 + one script tag"
+     },
+     {
+      "id": "b",
+      "box": [
+       390,
+       40,
+       674,
+       140
+      ],
+      "title": "Shopper walks away",
+      "sub": "popup closed, tab idle"
+     },
+     {
+      "id": "c",
+      "box": [
+       390,
+       270,
+       674,
+       370
+      ],
+      "title": "Hollaback server",
+      "sub": "Orders v2: still unpaid?",
+      "accent": true
+     },
+     {
+      "id": "d",
+      "box": [
+       36,
+       270,
+       320,
+       370
+      ],
+      "title": "WhatsApp agent",
+      "sub": "Claude Haiku 5.5, opt-in only"
+     },
+     {
+      "id": "e",
+      "box": [
+       36,
+       500,
+       320,
+       600
+      ],
+      "title": "PayPal tools",
+      "sub": "Pay Later, invoice, link"
+     },
+     {
+      "id": "f",
+      "box": [
+       390,
+       500,
+       674,
+       600
+      ],
+      "title": "Recovered",
+      "sub": "verified PayPal webhook",
+      "accent": true
+     }
+    ],
+    "arrows": [
+     {
+      "from": "a",
+      "from_side": "right",
+      "to": "b",
+      "to_side": "left"
+     },
+     {
+      "from": "b",
+      "from_side": "bottom",
+      "to": "c",
+      "to_side": "top",
+      "label": "30 s later",
+      "label_at": [
+       545,
+       205
+      ],
+      "anchor": "lm"
+     },
+     {
+      "from": "c",
+      "from_side": "left",
+      "to": "d",
+      "to_side": "right"
+     },
+     {
+      "from": "d",
+      "from_side": "bottom",
+      "to": "e",
+      "to_side": "top",
+      "label": "answers",
+      "label_at": [
+       190,
+       435
+      ],
+      "anchor": "lm"
+     },
+     {
+      "from": "e",
+      "from_side": "right",
+      "to": "f",
+      "to_side": "left"
+     }
+    ],
+    "note": "Every step is a real PayPal sandbox call."
+   },
+   "vo": "Hollaback is one script tag on a PayPal checkout. It notices the walk-away, asks PayPal whether the order is still unpaid, and an agent answers the shopper's real objection with a PayPal way to finish."
+  },
+  {
+   "id": "p1",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "store.webm",
+   "cut": [
+    6.0,
+    32.5
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 2.6,
+   "step": "01",
+   "head": "Kicks Lagos: a Lagos sneaker brand selling abroad",
+   "sub": "Real PayPal JS SDK v6 checkout on sandbox. The shopper opts in to WhatsApp, opens Pay Later, then closes it.",
+   "vo": "Kicks Lagos is a Lagos sneaker brand selling to customers abroad. A shopper opts in to WhatsApp updates, opens PayPal Pay Later, and closes it."
+  },
+  {
+   "id": "p2",
+   "kind": "phone",
+   "src": "phone_paylater.mp4",
+   "cut": [
+    [
+     6.0,
+     12.0
+    ],
+    [
+     25.0,
+     52.0
+    ]
+   ],
+   "max_speed": 3.0,
+   "step": "02",
+   "head": "Within a minute, on WhatsApp",
+   "sub": "\"Bit pricey rn\": the agent calls offer_pay_later and sends Pay in 4 with the PayPal link.",
+   "vo": "Thirty seconds later, PayPal confirms the order is still unpaid, so the agent writes. She says it's a bit pricey. The agent checks Pay Later and offers Pay in 4: twenty-two dollars twenty-five today."
+  },
+  {
+   "id": "p3",
+   "kind": "phone",
+   "src": "phone_paylater.mp4",
+   "cut": [
+    [
+     57.0,
+     63.0
+    ],
+    [
+     99.0,
+     116.0
+    ],
+    [
+     124.0,
+     128.0
+    ],
+    [
+     136.5,
+     140.5
+    ]
+   ],
+   "max_speed": 3.0,
+   "step": "03",
+   "head": "She pays in 4 on PayPal",
+   "sub": "PayPal sandbox, US buyer account. Order captured, thank-you on WhatsApp.",
+   "vo": "She taps the link, logs in to PayPal, picks Pay in 4 and approves. Back on WhatsApp, the thank-you is already waiting."
+  },
+  {
+   "id": "p4",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "dash_live.webm",
+   "cut": [
+    [
+     50.0,
+     58.0
+    ],
+    [
+     532.0,
+     546.0
+    ]
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 2.0,
+   "step": "04",
+   "head": "The merchant sees it land, live",
+   "sub": "AG Grid dashboard over server-sent events. Recovered when PayPal's verified webhook arrives.",
+   "vo": "On the merchant's dashboard, built on AG Grid, the cart flips to Recovered the moment PayPal's verified webhook lands, and recovered revenue ticks up."
+  },
+  {
+   "id": "p5",
+   "kind": "phone",
+   "src": "phone_invoice.mp4",
+   "cut": [
+    [
+     58.0,
+     64.0
+    ],
+    [
+     78.0,
+     92.0
+    ],
+    [
+     103.0,
+     109.0
+    ],
+    [
+     153.0,
+     160.0
+    ],
+    [
+     173.0,
+     177.0
+    ],
+    [
+     197.0,
+     205.0
+    ]
+   ],
+   "max_speed": 3.0,
+   "step": "05",
+   "head": "\"Just email me the invoice\"",
+   "sub": "The agent creates and sends a PayPal invoice (Invoicing v2). Paid, then INVOICING.INVOICE.PAID.",
+   "vo": "Another shopper just wants an invoice. The agent creates and sends a PayPal invoice, shares the pay link, and when it's paid, the cart counts as recovered."
+  },
+  {
+   "id": "p6",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "overview.webm",
+   "cut": [
+    2.5,
+    26.0
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 2.2,
+   "step": "06",
+   "head": "Every abandoned checkout, by outcome",
+   "sub": "Recovered by link or invoice, no reply, declined. Quick filter finds any shopper, order or invoice.",
+   "vo": "Every abandoned checkout lands here, grouped by outcome: recovered by link or by invoice, no reply, or declined. Search finds any shopper, order or invoice."
+  },
+  {
+   "id": "p7",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "transcript.webm",
+   "cut": [
+    2.5,
+    20.2
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 2.0,
+   "step": "07",
+   "head": "Every PayPal call, on the record",
+   "sub": "The conversation, each tool call with its input and output, and webhooks verified with PayPal.",
+   "vo": "Each conversation keeps its receipts: every tool the agent called, what PayPal returned, and every webhook, verified with PayPal."
+  },
+  {
+   "id": "p8",
+   "kind": "laptop",
+   "layout": "wide",
+   "src": "playbook.webm",
+   "cut": [
+    2.0,
+    15.0
+   ],
+   "crop": [
+    1920,
+    1080,
+    0,
+    0
+   ],
+   "max_speed": 1.4,
+   "step": "08",
+   "head": "Guardrails live in code, not in the prompt",
+   "sub": "Discount cap 10%, once, after Pay Later. Opt-in only. Money moves only through checked tools.",
+   "vo": "And the model can't give the store away. Discounts are capped at ten percent, once, only after Pay Later. Only opted-in shoppers are messaged, and money moves only through checked tools."
+  },
+  {
+   "id": "s9",
+   "kind": "slide",
+   "label": "BUILT ON",
+   "head": "PayPal does the real work",
+   "bullets": [
+    "JS SDK v6: PayPal and Pay Later buttons, Pay in 4 message",
+    "Orders v2: create, check unpaid, capture",
+    "Invoicing v2: create, send, track paid",
+    "Webhooks, each signature verified with PayPal",
+    "PayPal Agent Toolkit: order and invoice lookups",
+    "Claude Haiku 5.5, Twilio WhatsApp, AG Grid, Render"
+   ],
+   "columns": 2,
+   "vo": "Under the hood: PayPal's JavaScript SDK version six, Orders, Pay Later, Invoicing, verified webhooks and the PayPal Agent Toolkit. Claude Haiku runs the agent, AG Grid powers the dashboard, and it all runs on Render.",
+   "image": "img/p_transcript.jpg"
+  },
+  {
+   "id": "s10",
+   "kind": "slide",
+   "label": "WHY IT MATTERS",
+   "head": "Every recovery is a sale\nthat was already lost",
+   "bullets": [
+    {
+     "k": "Merchants",
+     "v": "Win back checkouts they had written off"
+    },
+    {
+     "k": "PayPal",
+     "v": "More completed payments, Pay Later and invoices"
+    },
+    {
+     "k": "Pricing",
+     "v": "A share of recovered revenue, paid only on success"
+    },
+    {
+     "k": "Proof",
+     "v": "6 recoveries from a real phone on PayPal sandbox"
+    }
+   ],
+   "columns": 1,
+   "vo": "Every recovery is a sale that was already lost, completed through PayPal. Merchants would pay a share of what's recovered, so they only pay when it works. Six recoveries from a real phone are already on record in PayPal sandbox.",
+   "image": "img/p_overview.jpg"
+  },
+  {
+   "id": "e0",
+   "kind": "end",
+   "lines": [
+    "One script tag.",
+    "Every PayPal merchant",
+    "could use it tomorrow."
+   ],
+   "links": [
+    [
+     "Try it",
+     "hollaback-demo-store.onrender.com"
+    ],
+    [
+     "Dashboard",
+     "hollaback-dashboard.onrender.com"
+    ],
+    [
+     "Code",
+     "github.com/big14way/hollaback"
+    ]
+   ],
+   "footer": "PayPal JS SDK v6 \u00b7 Orders v2 \u00b7 Pay Later \u00b7 Invoicing v2 \u00b7 Webhooks \u00b7 Agent Toolkit \u00b7 AG Grid \u00b7 Render",
+   "vo": "Hollaback. One script tag, and every PayPal merchant could use it tomorrow."
+  }
+ ]
+}
