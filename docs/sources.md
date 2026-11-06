@@ -8,7 +8,7 @@ Every figure the video states, where it comes from, and when it was checked (Nov
 | $260 billion of lost orders in the US and EU are recoverable through better checkout | Baymard Institute, same page |
 | Abandoned-cart emails convert 1.51% of sends (2025 data) | Omnisend, [Cart abandonment emails](https://www.omnisend.com/blog/cart-abandonment-emails/) |
 | 72.4% of consumers are more likely to buy from a brand that offers messaging (Kantar for Meta, 22 markets) | Meta, [State of business messaging](https://business.whatsapp.com/resources/resource-library/state-of-business-messaging) |
-| Pay Later messaging and/or the Pay Later button: +29% PayPal sales (7 markets) | PayPal, [Pay Later for business](https://www.paypal.com/us/business/accept-payments/checkout/installments) |
+| Pay Later messaging and/or the Pay Later button: +29% PayPal sales (7 markets where Pay Later is offered) | PayPal, [Pay Later for business](https://www.paypal.com/us/business/accept-payments/checkout/installments) |
 | PayPal Pay Later is offered to buyers in the US, UK, Canada, Australia, Germany, France, Italy and Spain | PayPal, same page (footnotes) |
 
 ## Sellers in their own words
@@ -24,4 +24,4 @@ Public posts on X by online sellers in Nigeria, quoted on screen without their n
 
 ## The demo itself
 
-Recorded on Nov 5 2026 against PayPal sandbox with a real phone on the Twilio WhatsApp sandbox. The merchant is a US sandbox business account (Kicks Lagos, a Lagos sneaker brand selling abroad) and the shopper pays with a US sandbox personal account, because Pay Later is offered to US buyers. Six carts were recovered end to end that evening: three through the PayPal checkout link the agent sent (the one on camera paid with Pay in 4) and three through PayPal invoices. Each was confirmed by PayPal (a verified webhook, or the server's own order check followed by the verified webhook). Two more conversations ended as a decline and a no-reply, which is why the dashboard in the video shows all four outcomes.
+Recorded on Nov 5 and 6 2026 against PayPal sandbox with a real phone on the Twilio WhatsApp sandbox. The merchant is a US sandbox business account (Kicks Lagos, a Lagos sneaker brand selling abroad) and the shopper pays with a US sandbox personal account, because Pay Later is offered to US buyers. Eight carts were recovered end to end on Nov 5 and 6: four through the PayPal checkout link the agent sent (the one on camera paid with Pay in 4) and four through PayPal invoices (the Nov 6 one created through the PayPal Agent Toolkit). Each was confirmed by PayPal (a verified webhook, or the server's own order check followed by the verified webhook). Other conversations ended as declines or no-replies. The dashboard scenes recorded on Nov 6 show that day's carts: two recovered (link and invoice), one declined, and the demo shopper's open invoice.
