@@ -28,6 +28,19 @@ function time(iso: string) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 }
 
+/** Turns the PayPal links the agent sends into clickable links (the shopper's view on WhatsApp makes them tappable too). */
+function linkify(text: string) {
+  return text.split(/(https?:\/\/[^\s]+)/g).map((part, i) =>
+    /^https?:\/\//.test(part) ? (
+      <a key={i} href={part} target="_blank" rel="noreferrer">
+        {part}
+      </a>
+    ) : (
+      part
+    ),
+  );
+}
+
 function Json({ value }: { value: unknown }) {
   return <pre className="json">{JSON.stringify(value, null, 2)}</pre>;
 }
@@ -162,7 +175,7 @@ export function Transcript({ id }: { id: string }) {
                 </li>
               ) : (
                 <li key={m.id} className={`bubble ${m.role}`}>
-                  <p>{m.body}</p>
+                  <p>{linkify(m.body)}</p>
                   <time>{time(m.createdAt)}</time>
                 </li>
               ),
