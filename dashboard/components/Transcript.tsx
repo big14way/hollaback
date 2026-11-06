@@ -107,8 +107,9 @@ export function Transcript({ id }: { id: string }) {
   const { cart } = data;
   const latest = data.conversations[data.conversations.length - 1];
   const outcome = outcomeKey({ status: cart.status, outcome: latest?.outcome ?? (cart.status === "paid" ? "paid" : null) });
-  const open = data.conversations.some((c) => c.status === "open");
-  const canReply = data.channel === "console" && open;
+  // The demo shopper's number stays on the console channel even when the server's channel is WhatsApp.
+  const openConversation = data.conversations.filter((c) => c.status === "open").at(-1);
+  const canReply = openConversation?.channel === "console";
 
   return (
     <div className="transcript-page">

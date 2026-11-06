@@ -1,4 +1,8 @@
 import { HARD_DISCOUNT_CAP_PCT } from "./agent/guardrails.js";
+import { normalizePhone } from "./util.js";
+
+/** The number the demo store's "Fill in a demo shopper" button enters. It never joined any WhatsApp sandbox. */
+export const DEMO_SHOPPER_PHONE = "+234 803 123 4567";
 
 export interface Config {
   port: number;
@@ -23,6 +27,8 @@ export interface Config {
   merchant: { id: string; name: string; currency: string; persona: string };
   agent: { anthropicApiKey: string; model: string; effort: AgentEffort; mode: "auto" | "claude" | "scripted" };
   twilio: { accountSid: string; authToken: string; whatsappFrom: string; validateSignature: boolean };
+  /** Shopper numbers (E.164) whose conversations stay on the console channel, whatever the main channel is. */
+  consoleNumbers: string[];
   supabase: { url: string; serviceRoleKey: string };
   snippetPath: string | null;
 }
@@ -85,6 +91,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       whatsappFrom: env.TWILIO_WHATSAPP_FROM || "",
       validateSignature: env.TWILIO_VALIDATE_SIGNATURE !== "0",
     },
+    consoleNumbers: (env.CONSOLE_NUMBERS || DEMO_SHOPPER_PHONE)
+      .split(",")
+      .map((n) => normalizePhone(n))
+      .filter((n): n is string => n !== null),
     supabase: {
       url: env.SUPABASE_URL || "",
       serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY || "",

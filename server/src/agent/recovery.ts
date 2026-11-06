@@ -1,9 +1,9 @@
 import type { Logger } from "../abandonment.js";
-import type { ChannelAdapter } from "../channels/types.js";
+import type { ChannelRouter } from "../channels/router.js";
 import type { Config } from "../config.js";
 import { effectiveTotal } from "../orders.js";
 import type { PayPalClient } from "../paypal/client.js";
-import type { Cart, Conversation, Store, ToolCallLog } from "../store/types.js";
+import type { Cart, Channel, Conversation, Store, ToolCallLog } from "../store/types.js";
 import { firstName, formatMoney } from "../util.js";
 import { canSendAgentMessage, isOptOut, MAX_UNANSWERED } from "./guardrails.js";
 import { ScriptedAgent } from "./scripted.js";
@@ -15,7 +15,7 @@ export interface RecoveryDeps {
   paypal: PayPalClient;
   config: Config;
   agent: RecoveryAgent;
-  channel: ChannelAdapter;
+  channels: ChannelRouter;
   toolkit: ToolkitBridge | null;
   log: Logger;
 }
@@ -43,7 +43,7 @@ export class RecoveryService {
 
   /** Called by the abandonment monitor once a checkout is confirmed abandoned. */
   async onAbandoned(cart: Cart): Promise<Conversation | null> {
-    const { store, channel, log } = this.deps;
+    const { store, channels, log } = this.deps;
     if (!cart.consent || !cart.shopperPhone) {
       const reason = !cart.shopperPhone ? "no phone number captured" : "no WhatsApp consent";
       await store.addCheckoutEvent({ cartId: cart.id, type: "recovery_skipped", detail: { reason } });
@@ -53,17 +53,26 @@ export class RecoveryService {
     const existing = (await store.listConversations(cart.id)).find((c) => c.status === "open");
     if (existing) return existing;
 
-    const conv = await store.createConversation({ cartId: cart.id, channel: channel.name, address: cart.shopperPhone });
-    await store.updateCart(cart.id, { status: "contacted", recoveryChannel: channel.name });
+    const channel = channels.forAddress(cart.shopperPhone).name;
+    const conv = await store.createConversation({ cartId: cart.id, channel, address: cart.shopperPhone });
+    await store.updateCart(cart.id, { status: "contacted", recoveryChannel: channel });
     await this.enqueue(conv.id, () => this.turn(conv.id, { kind: "abandoned", reason: cart.abandonReason ?? "unknown" }));
     return store.getConversation(conv.id);
   }
 
-  /** A shopper message arrived (WhatsApp webhook or console). */
-  async handleInbound(address: string, text: string): Promise<{ handled: boolean; conversationId?: string }> {
+  /**
+   * A shopper message arrived (WhatsApp webhook or console). With `channel`, only an open
+   * conversation on that channel takes it.
+   */
+  async handleInbound(address: string, text: string, channel?: Channel): Promise<{ handled: boolean; conversationId?: string }> {
+    const conv = await this.deps.store.findOpenConversation(address);
+    if (!conv || (channel && conv.channel !== channel)) return { handled: false };
+    return this.receive(conv, text);
+  }
+
+  /** A shopper message for a known open conversation (the dashboard's "reply as shopper"). */
+  async receive(conv: Conversation, text: string): Promise<{ handled: true; conversationId: string }> {
     const { store } = this.deps;
-    const conv = await store.findOpenConversation(address);
-    if (!conv) return { handled: false };
     await this.enqueue(conv.id, async () => {
       await store.addMessage({ conversationId: conv.id, role: "shopper", body: text.slice(0, 2000), toolCall: null });
       await store.updateConversation(conv.id, { unanswered: 0 });
@@ -130,9 +139,9 @@ export class RecoveryService {
   }
 
   private async sendAgent(conv: Conversation, body: string): Promise<void> {
-    const { store, channel, log } = this.deps;
+    const { store, channels, log } = this.deps;
     try {
-      await channel.send(conv.address, body);
+      await channels.byName(conv.channel).send(conv.address, body);
     } catch (err) {
       log.error({ err, conversationId: conv.id }, "channel send failed");
       await store.addMessage({ conversationId: conv.id, role: "system", body: `Send failed: ${String((err as Error)?.message ?? err)}`, toolCall: null });
@@ -145,9 +154,9 @@ export class RecoveryService {
 
   /** Templated message that is not counted as an unanswered agent turn. */
   private async sendRaw(conv: Conversation, body: string): Promise<void> {
-    const { store, channel, log } = this.deps;
+    const { store, channels, log } = this.deps;
     try {
-      await channel.send(conv.address, body);
+      await channels.byName(conv.channel).send(conv.address, body);
       await store.addMessage({ conversationId: conv.id, role: "agent", body, toolCall: null });
     } catch (err) {
       log.error({ err }, "channel send failed");

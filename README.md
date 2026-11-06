@@ -41,6 +41,8 @@ To pay as the shopper on the hosted demo (the PayPal popup, a link the agent sen
 
 Skip *Pay with Debit or Credit Card* on the PayPal page; that is guest checkout. Log in with the account above to see PayPal Pay Later.
 
+*Fill in a demo shopper* enters a made-up number, so the agent's conversation for it runs on that cart's dashboard page, where you reply as the shopper. To get it on your own WhatsApp instead, send `join tales-told` to +1 415 523 8886 on WhatsApp, then check out with your own number.
+
 ## Try it in 90 seconds (no accounts needed)
 
 Requirements: Node 20+ and pnpm 10 (`corepack enable`).
@@ -96,6 +98,8 @@ Use your own sandbox personal account to pay locally, or the hosted demo's sandb
 ### WhatsApp (Twilio sandbox)
 
 Set `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN` and `TWILIO_WHATSAPP_FROM` (the sandbox number, `whatsapp:+14155238886`). The shopper's phone must join the Twilio WhatsApp sandbox once by sending its join code. In the Twilio console set "When a message comes in" to `https://<server>/whatsapp/inbound` (POST). Inbound requests are checked against `X-Twilio-Signature`. Without Twilio, messages print in the server console and replies come from the dashboard.
+
+The channel is picked per conversation. Numbers in `CONSOLE_NUMBERS` (by default the demo store's *Fill in a demo shopper* number, +234 803 123 4567, which never joined the sandbox) stay on the console channel even when WhatsApp is on, so their conversation runs in the dashboard's *reply as shopper* box. Every other number gets WhatsApp. To get the hosted demo's conversation on your own phone, send `join tales-told` to +1 415 523 8886 on WhatsApp first, then check out with your own number.
 
 On the Twilio sandbox, `STOP` is Twilio's own keyword: it removes your phone from the sandbox and never reaches Hollaback (the next message fails with error 63015 until you send the join code again). To see the decline path there, reply something like `no thanks, not interested`. With a production WhatsApp sender, `STOP` reaches Hollaback and ends the conversation for good.
 

@@ -8,6 +8,7 @@ import { ScriptedAgent } from "./agent/scripted.js";
 import { createToolkitBridge, type ToolkitBridge } from "./agent/toolkit.js";
 import type { RecoveryAgent } from "./agent/types.js";
 import { ConsoleChannel } from "./channels/console.js";
+import { ChannelRouter } from "./channels/router.js";
 import { TwilioWhatsAppChannel } from "./channels/twilio.js";
 import type { ChannelAdapter } from "./channels/types.js";
 import type { Config } from "./config.js";
@@ -36,7 +37,9 @@ export interface AppDeps {
   mock: MockPayPal | null;
   monitor: AbandonmentMonitor;
   recovery: RecoveryService;
+  /** The main channel (reported by /health and /config). */
   channel: ChannelAdapter;
+  channels: ChannelRouter;
   agent: RecoveryAgent;
   toolkit: ToolkitBridge | null;
   log: Logger;
@@ -45,7 +48,10 @@ export interface AppDeps {
 
 export interface BuildOverrides {
   store?: Store;
+  /** Main channel. */
   channel?: ChannelAdapter;
+  /** Console channel for CONSOLE_NUMBERS when the main channel is not the console. */
+  consoleChannel?: ChannelAdapter;
   agent?: RecoveryAgent;
   log?: Logger;
 }
@@ -66,12 +72,14 @@ export async function buildApp(config: Config, overrides: BuildOverrides = {}): 
     (config.twilio.accountSid && config.twilio.authToken && config.twilio.whatsappFrom
       ? new TwilioWhatsAppChannel({ accountSid: config.twilio.accountSid, authToken: config.twilio.authToken, from: config.twilio.whatsappFrom })
       : new ConsoleChannel());
+  const consoleChannel = channel.name === "console" ? channel : (overrides.consoleChannel ?? new ConsoleChannel());
+  const channels = new ChannelRouter(channel, consoleChannel, config.consoleNumbers);
   const useClaude = config.agent.mode !== "scripted" && !!config.agent.anthropicApiKey;
   if (config.agent.mode === "claude" && !config.agent.anthropicApiKey) log.warn({}, "AGENT_MODE=claude but ANTHROPIC_API_KEY is not set; using the scripted agent");
   const agent: RecoveryAgent = overrides.agent ?? (useClaude ? new ClaudeAgent(config) : new ScriptedAgent());
   const toolkit = createToolkitBridge(config, log);
 
-  const recovery = new RecoveryService({ store, paypal, config, agent, channel, toolkit, log });
+  const recovery = new RecoveryService({ store, paypal, config, agent, channels, toolkit, log });
   const monitor = new AbandonmentMonitor({
     store,
     paypal,
@@ -132,6 +140,7 @@ export async function buildApp(config: Config, overrides: BuildOverrides = {}): 
     monitor,
     recovery,
     channel,
+    channels,
     agent,
     toolkit,
     log,
