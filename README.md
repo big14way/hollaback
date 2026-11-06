@@ -200,7 +200,7 @@ hollaback/
   supabase/     schema.sql
 ```
 
-The dashboard groups carts by outcome with full-width group rows, because AG Grid's built-in row grouping is an Enterprise feature and Hollaback uses only AG Grid Community.
+The dashboard groups carts by outcome with full-width group rows, because AG Grid's built-in row grouping is an Enterprise feature and Hollaback uses only AG Grid Community. It also uses Community's quick filter, a pinned bottom totals row (carts shown, their value and what was recovered, following the filter) and CSV export (`exportDataAsCsv` with readable values: outcome labels, ISO times, plain amounts, how each recovered cart was paid and the PayPal order id).
 
 ## Scripts
 

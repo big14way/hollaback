@@ -6,29 +6,24 @@ import {
   themeQuartz,
   type ColDef,
   type ICellRendererParams,
+  type ModelUpdatedEvent,
   type RowClickedEvent,
 } from "ag-grid-community";
 import { AgGridReact } from "ag-grid-react";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchCarts, fetchStats, API_URL } from "@/lib/api";
-import { itemsSummary, maskPhone, money, outcomeKey, relativeTime } from "@/lib/format";
+import { cartTotals, CSV_COLUMNS, csvValue, LEFT_VIA, paidVia, shopperLabel, type CartTotals } from "@/lib/export";
+import { itemsSummary, money, outcomeKey, relativeTime } from "@/lib/format";
 import { useLiveUpdates } from "@/lib/live";
-import { groupByOutcome, toDataRows, type GridRow, type GroupHeaderRow } from "@/lib/grouping";
+import { groupByOutcome, toDataRows, type DataRow, type GridRow, type GroupHeaderRow, type TotalsRow } from "@/lib/grouping";
 import type { CartRow, Stats } from "@/lib/types";
 import { OutcomeBadge } from "./Badge";
 import { Counter } from "./Counter";
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
-const LEFT_VIA: Record<string, string> = {
-  cancel: "Closed PayPal",
-  idle: "Went idle",
-  hidden: "Left the tab",
-  exit_intent: "Exit intent",
-  pagehide: "Closed the page",
-  timeout: "Never paid",
-};
+const CSV_HEADERS: Record<string, string> = Object.fromEntries(CSV_COLUMNS.map((c) => [c.colId, c.header]));
 
 const theme = themeQuartz.withParams({
   fontFamily: "inherit",
@@ -48,6 +43,9 @@ const theme = themeQuartz.withParams({
   headerHeight: 40,
   cellHorizontalPadding: 18,
   accentColor: "#12553f",
+  pinnedRowBackgroundColor: "#fafaf8",
+  pinnedRowFontWeight: 600,
+  pinnedRowBorder: { color: "#ebeae6" },
 });
 
 function GroupHeader(props: ICellRendererParams<GridRow> & { onToggle: (key: string) => void }) {
@@ -120,7 +118,9 @@ export function CartsDashboard() {
   const [quick, setQuick] = useState("");
   const [grouped, setGrouped] = useState(true);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [totals, setTotals] = useState<CartTotals>({ carts: 0, total: 0, recovered: 0 });
   const [, setNow] = useState(0);
+  const grid = useRef<AgGridReact<GridRow>>(null);
 
   const load = useCallback(async () => {
     try {
@@ -158,25 +158,39 @@ export function CartsDashboard() {
   const columns = useMemo<ColDef<GridRow>[]>(
     () => [
       {
+        colId: "shopper",
         headerName: "Shopper",
         flex: 1.4,
         minWidth: 170,
-        valueGetter: (p) => (p.data?.kind === "cart" ? [p.data.shopperName, maskPhone(p.data.shopperPhone)].filter(Boolean).join(" · ") || "Anonymous" : ""),
+        valueGetter: (p) =>
+          p.data?.kind === "cart"
+            ? shopperLabel(p.data)
+            : p.data?.kind === "totals"
+              ? `Total · ${p.data.carts} cart${p.data.carts === 1 ? "" : "s"} shown`
+              : "",
       },
       {
+        colId: "items",
         headerName: "Items",
         flex: 1,
         minWidth: 120,
         valueGetter: (p) => (p.data?.kind === "cart" ? itemsSummary(p.data.items) : ""),
       },
       {
+        colId: "total",
         headerName: "Total",
         width: 104,
         type: "rightAligned",
-        valueGetter: (p) => (p.data?.kind === "cart" ? p.data.effectiveTotal : null),
-        valueFormatter: (p) => (p.data?.kind === "cart" ? money(p.value as number, p.data.currency) + (p.data.discountPct ? ` (−${p.data.discountPct}%)` : "") : ""),
+        valueGetter: (p) => (p.data?.kind === "cart" ? p.data.effectiveTotal : p.data?.kind === "totals" ? p.data.total : null),
+        valueFormatter: (p) =>
+          p.data?.kind === "cart"
+            ? money(p.value as number, p.data.currency) + (p.data.discountPct ? ` (−${p.data.discountPct}%)` : "")
+            : p.data?.kind === "totals"
+              ? money(p.value as number, p.data.currency)
+              : "",
       },
       {
+        colId: "leftAt",
         headerName: "Left checkout",
         width: 124,
         valueGetter: (p) => (p.data?.kind === "cart" ? p.data.abandonedAt : null),
@@ -185,12 +199,14 @@ export function CartsDashboard() {
         sort: undefined,
       },
       {
+        colId: "leftVia",
         headerName: "How they left",
         width: 136,
         valueGetter: (p) => (p.data?.kind === "cart" ? (p.data.abandonReason ?? "") : ""),
         valueFormatter: (p) => LEFT_VIA[p.value as string] ?? (p.value as string) ?? "",
       },
       {
+        colId: "outcome",
         headerName: "Outcome",
         width: 164,
         valueGetter: (p) => (p.data?.kind === "cart" ? outcomeKey(p.data) : null),
@@ -198,23 +214,68 @@ export function CartsDashboard() {
           p.data?.kind === "cart" ? <OutcomeBadge outcome={outcomeKey(p.data)} /> : null,
       },
       {
+        colId: "recovered",
         headerName: "Recovered",
         width: 150,
         type: "rightAligned",
-        valueGetter: (p) => (p.data?.kind === "cart" && p.data.status === "recovered" ? p.data.recoveredAmount : null),
-        valueFormatter: (p) => (p.value ? `${money(p.value as number)} · ${p.data?.kind === "cart" && p.data.invoiceId ? "invoice" : "link"}` : ""),
-        cellClass: "money-cell",
+        valueGetter: (p) =>
+          p.data?.kind === "cart" && p.data.status === "recovered" ? p.data.recoveredAmount : p.data?.kind === "totals" ? p.data.recovered : null,
+        valueFormatter: (p) =>
+          p.data?.kind === "totals"
+            ? money(p.value as number, p.data.currency)
+            : p.value && p.data?.kind === "cart"
+              ? `${money(p.value as number)} · ${paidVia(p.data)}`
+              : "",
+        // A cellClass replaces the one the rightAligned type sets, so keep it here.
+        cellClass: ["ag-right-aligned-cell", "money-cell"],
       },
+      // Export-only columns, so the CSV carries the currency, how it was paid and the PayPal order.
+      ...(["currency", "paidVia", "orderId"] as const).map(
+        (colId): ColDef<GridRow> => ({
+          colId,
+          headerName: CSV_HEADERS[colId],
+          hide: true,
+          valueGetter: (p) => (p.data?.kind === "cart" ? csvValue(colId, p.data) : ""),
+          getQuickFilterText: () => "",
+        }),
+      ),
       {
         headerName: "search",
         colId: "search",
         hide: true,
-        valueGetter: (p) => p.data?.search ?? "",
-        getQuickFilterText: (p) => (p.data?.search as string) ?? "",
+        valueGetter: (p) => (p.data && p.data.kind !== "totals" ? p.data.search : ""),
+        getQuickFilterText: (p) => (p.data && p.data.kind !== "totals" ? p.data.search : ""),
       },
     ],
     [],
   );
+
+  // The totals row adds up what the grid shows: the quick filter applies, collapsed groups don't count.
+  const onModelUpdated = useCallback((e: ModelUpdatedEvent<GridRow>) => {
+    const visible: DataRow[] = [];
+    e.api.forEachNodeAfterFilter((node) => {
+      if (node.data?.kind === "cart") visible.push(node.data);
+    });
+    const next = cartTotals(visible);
+    setTotals((prev) => (prev.carts === next.carts && prev.total === next.total && prev.recovered === next.recovered ? prev : next));
+  }, []);
+
+  const currency = stats?.currency ?? "USD";
+  const pinnedBottom = useMemo<TotalsRow[]>(
+    () => (totals.carts ? [{ kind: "totals", id: "totals", currency, ...totals }] : []),
+    [totals, currency],
+  );
+
+  const exportCsv = useCallback(() => {
+    grid.current?.api.exportDataAsCsv({
+      fileName: `hollaback-abandoned-checkouts-${new Date().toISOString().slice(0, 10)}.csv`,
+      columnKeys: CSV_COLUMNS.map((c) => c.colId),
+      shouldRowBeSkipped: (p) => p.node.data?.kind !== "cart",
+      skipPinnedBottom: true,
+      processHeaderCallback: (p) => CSV_HEADERS[p.column.getColId()] ?? p.column.getColId(),
+      processCellCallback: (p) => (p.node?.data?.kind === "cart" ? csvValue(p.column.getColId(), p.node.data) : ""),
+    });
+  }, []);
 
   const onRowClicked = useCallback(
     (e: RowClickedEvent<GridRow>) => {
@@ -223,7 +284,6 @@ export function CartsDashboard() {
     [router],
   );
 
-  const currency = stats?.currency ?? "USD";
   const rate = Math.round((stats?.recoveryRate ?? 0) * 100);
 
   return (
@@ -280,13 +340,22 @@ export function CartsDashboard() {
               <label className="toggle">
                 <input type="checkbox" checked={grouped} onChange={(e) => setGrouped(e.target.checked)} /> Group by outcome
               </label>
+              <button type="button" className="btn" onClick={exportCsv} disabled={!totals.carts} title="Download the carts shown as a CSV file">
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path d="M8 2v8m0 0L4.5 6.5M8 10l3.5-3.5M2.5 11v1.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1V11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Export CSV
+              </button>
             </div>
           </header>
           {error && <p className="error banner">{error}</p>}
           <div className="grid-wrap">
             <AgGridReact<GridRow>
+              ref={grid}
               theme={theme}
               rowData={rows}
+              pinnedBottomRowData={pinnedBottom}
+              onModelUpdated={onModelUpdated}
               columnDefs={columns}
               getRowId={(p) => p.data.id}
               isFullWidthRow={(p) => p.rowNode.data?.kind === "group"}
@@ -295,7 +364,7 @@ export function CartsDashboard() {
               quickFilterText={quick}
               includeHiddenColumnsInQuickFilter
               onRowClicked={onRowClicked}
-              rowClassRules={{ "row-link": (p) => p.data?.kind === "cart" }}
+              rowClassRules={{ "row-link": (p) => p.data?.kind === "cart", "totals-row": (p) => p.data?.kind === "totals" }}
               defaultColDef={{ sortable: true, resizable: true, suppressMovable: true }}
               overlayNoRowsTemplate="No abandoned checkouts yet. When a shopper leaves a PayPal checkout, it appears here within a minute."
               domLayout="autoHeight"

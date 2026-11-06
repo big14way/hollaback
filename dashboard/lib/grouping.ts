@@ -22,7 +22,20 @@ export interface DataRow extends CartRow {
   search: string;
 }
 
-export type GridRow = GroupHeaderRow | DataRow;
+/** Pinned bottom row: the carts the grid currently shows, added up. */
+export interface TotalsRow {
+  kind: "totals";
+  id: "totals";
+  carts: number;
+  total: number;
+  recovered: number;
+  currency: string;
+}
+
+/** Rows of the grid body. */
+export type TableRow = GroupHeaderRow | DataRow;
+
+export type GridRow = TableRow | TotalsRow;
 
 export const GROUP_ORDER = ["recovered", "invoice_sent", "in_progress", "none", "no_reply", "declined", "paid"] as const;
 
@@ -36,7 +49,7 @@ export function toDataRows(carts: CartRow[]): DataRow[] {
   return carts.map((c) => ({ ...c, kind: "cart" as const, search: searchText(c) }));
 }
 
-export function groupByOutcome(carts: CartRow[], collapsed: ReadonlySet<string>): GridRow[] {
+export function groupByOutcome(carts: CartRow[], collapsed: ReadonlySet<string>): TableRow[] {
   const buckets = new Map<string, CartRow[]>();
   for (const c of carts) {
     const key = outcomeKey(c);
@@ -46,7 +59,7 @@ export function groupByOutcome(carts: CartRow[], collapsed: ReadonlySet<string>)
   const keys = [...buckets.keys()].sort(
     (a, b) => GROUP_ORDER.indexOf(a as (typeof GROUP_ORDER)[number]) - GROUP_ORDER.indexOf(b as (typeof GROUP_ORDER)[number]),
   );
-  const rows: GridRow[] = [];
+  const rows: TableRow[] = [];
   for (const key of keys) {
     const children = buckets.get(key)!;
     const data = toDataRows(children);

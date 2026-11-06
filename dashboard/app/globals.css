@@ -126,10 +126,21 @@ nav { display: grid; gap: 2px; }
 .search:focus { outline: 2px solid var(--brand); outline-offset: 1px; background: var(--panel); }
 .toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--ink-2); font-size: 13px; }
 .toggle input { accent-color: var(--brand); }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 500;
+  color: var(--ink-2); background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+  padding: 6px 11px; cursor: pointer; box-shadow: var(--shadow);
+}
+.btn:hover:not(:disabled) { background: var(--neutral-soft); color: var(--ink); }
+.btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 1px; }
+.btn:disabled { color: var(--faint); cursor: default; box-shadow: none; }
+.btn svg { color: var(--muted); }
 .grid-wrap { width: 100%; overflow-x: auto; }
 .grid-wrap > div { min-width: 760px; }
 .row-link { cursor: pointer; }
 .money-cell { color: var(--ok); font-weight: 600; font-variant-numeric: tabular-nums; }
+.totals-row { color: var(--ink); font-variant-numeric: tabular-nums; }
+.totals-row .ag-cell { font-size: 13px; }
 
 .group-row {
   all: unset; box-sizing: border-box; display: flex; align-items: center; gap: 10px; width: 100%; height: 100%;
