@@ -113,7 +113,7 @@ nav { display: grid; gap: 2px; }
 
 /* ---------- overview ---------- */
 .overview-grid { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 14px; align-items: start; }
-@media (max-width: 1480px) {
+@media (max-width: 1640px) {
   .overview-grid { grid-template-columns: 1fr; }
   .funnel ol { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 28px; }
 }
